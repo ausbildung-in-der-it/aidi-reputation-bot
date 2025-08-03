@@ -1,6 +1,6 @@
-import { ChatInputCommandInteraction } from "discord.js";
-import { reputationService } from "@/core/services/reputationService";
 import { createReputationEmbed } from "@/bot/utils/embeds";
+import { reputationService } from "@/core/services/reputationService";
+import { ChatInputCommandInteraction } from "discord.js";
 
 export async function handleReputationCommand(interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {

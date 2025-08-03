@@ -37,4 +37,23 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, user_id, bonus_date)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS introduction_channel_config (
+      guild_id TEXT NOT NULL PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      configured_by TEXT NOT NULL,
+      configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS introduction_reply_tracking (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      original_message_id TEXT NOT NULL,
+      replied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, user_id, original_message_id)
+    );
+  `);
 }

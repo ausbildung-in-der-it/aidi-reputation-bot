@@ -29,6 +29,20 @@ export const DAILY_BONUS_CONFIG: DailyBonusConfig = {
 	timezone: "Europe/Berlin",
 };
 
+export interface IntroductionConfig {
+	enabled: boolean;
+	postBonus: number;
+	replyBonus: number;
+	maxRepliesPerUser: number;
+}
+
+export const INTRODUCTION_CONFIG: IntroductionConfig = {
+	enabled: true,
+	postBonus: 5,
+	replyBonus: 2,
+	maxRepliesPerUser: 5,
+};
+
 export function getCurrentDateInTimezone(timezone: string): string {
 	const now = new Date();
 	return now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD format

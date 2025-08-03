@@ -18,6 +18,30 @@ const commands = [
 				.setMinValue(1)
 				.setMaxValue(25)
 		),
+	new SlashCommandBuilder()
+		.setName("set-introduction-channel")
+		.setDescription("Konfiguriert das Vorstellungs-Forum (Admin-only)")
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("set")
+				.setDescription("Setzt das Vorstellungs-Forum")
+				.addChannelOption(option =>
+					option
+						.setName("channel")
+						.setDescription("Das Forum für Vorstellungen")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("remove")
+				.setDescription("Entfernt die Vorstellungs-Forum Konfiguration")
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("status")
+				.setDescription("Zeigt den aktuellen Vorstellungs-Forum Status an")
+		),
 ].map(command => command.toJSON());
 
 export async function registerSlashCommands() {

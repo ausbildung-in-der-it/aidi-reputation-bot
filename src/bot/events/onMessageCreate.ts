@@ -1,5 +1,6 @@
 import { Message, PartialMessage } from "discord.js";
 import { awardDailyBonus } from "@/core/usecases/awardDailyBonus";
+import { awardIntroductionBonus } from "@/core/usecases/awardIntroductionBonus";
 import { UserInfo } from "@/core/types/UserInfo";
 
 async function createUserInfo(userId: string, guild: any): Promise<UserInfo | null> {
@@ -42,17 +43,61 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 		}
 
 		// Delegate business logic to core layer
-		const result = await awardDailyBonus({
+		// 1. Check for daily bonus
+		const dailyResult = await awardDailyBonus({
 			guildId,
 			user,
 			messageId,
 			messageTimestamp: message.createdAt,
 		});
 
-		// Optional: Log successful daily bonus awards
-		if (result.success && result.awarded) {
+		// 2. Check for introduction channel bonus (Forum Channels only)
+		const channel = message.channel;
+		
+		// Only process messages in forum threads
+		if (!channel || !('parent' in channel) || !channel.parent?.id) {
+			return; // Skip non-forum messages
+		}
+		
+		const forumChannelId = channel.parent.id;
+		
+		// Detect thread starter vs thread reply
+		// Thread starter: Message author is thread owner AND it's the very first message (within 1 second) AND no message reference
+		const isThreadOwner = 'ownerId' in channel && channel.ownerId === message.author?.id;
+		const isVeryFirstMessage = message.createdTimestamp && 'createdTimestamp' in channel && 
+			Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) < 1000; // Within 1 second only
+		const hasNoReference = !message.reference?.messageId; // Thread starters don't reference other messages
+		
+		const isThreadStarter = isThreadOwner && isVeryFirstMessage && hasNoReference;
+		const isThreadReply = !isThreadStarter;
+		
+		// For forum thread replies, use thread ID as the original message reference
+		const originalMessageId = isThreadReply ? channel.id : undefined;
+		
+		// Debug logging
+		console.log(`Forum message debug: threadId=${channel.id}, authorId=${message.author?.id}, ownerId=${'ownerId' in channel ? channel.ownerId : 'N/A'}, timeDiff=${message.createdTimestamp && 'createdTimestamp' in channel ? Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) : 'N/A'}ms, hasNoReference=${hasNoReference}, isThreadStarter=${isThreadStarter}, isThreadReply=${isThreadReply}`);
+		
+		const introductionResult = await awardIntroductionBonus({
+			guildId,
+			channelId: forumChannelId,
+			user,
+			messageId,
+			isReply: isThreadReply,
+			originalMessageId,
+			isThreadStarter,
+			threadOwnerId: 'ownerId' in channel ? channel.ownerId : undefined,
+		});
+
+		// Optional: Log successful bonus awards
+		if (dailyResult.success && dailyResult.awarded) {
 			console.log(
-				`Daily bonus awarded: ${result.points} RP to ${user.username} in guild ${guildId} on ${result.bonusDate}`
+				`Daily bonus awarded: ${dailyResult.points} RP to ${user.username} in guild ${guildId} on ${dailyResult.bonusDate}`
+			);
+		}
+
+		if (introductionResult.success && introductionResult.awarded) {
+			console.log(
+				`Introduction ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
 			);
 		}
 	} catch (err) {

@@ -52,4 +52,15 @@ export const reputationService = {
 		});
 		transaction();
 	},
+
+	hasUserReceivedBonus: (guildId: string, userId: string, emojis: string[]): boolean => {
+		const placeholders = emojis.map(() => "?").join(",");
+		const stmt = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM reputation_events
+            WHERE guild_id = ? AND to_user_id = ? AND emoji IN (${placeholders})
+        `);
+		const result = stmt.get(guildId, userId, ...emojis) as { count: number };
+		return result.count > 0;
+	},
 };
