@@ -8,7 +8,8 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
         return;
     }
 
-    const limit = interaction.options.getInteger('limit') || 10;
+    const requestedLimit = interaction.options.getInteger('limit') || 10;
+    const limit = Math.min(requestedLimit, 25); // Cap at 25 users max
     const guildId = interaction.guild.id;
     const guildName = interaction.guild.name;
 
