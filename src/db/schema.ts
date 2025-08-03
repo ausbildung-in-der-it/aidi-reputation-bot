@@ -56,4 +56,15 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, user_id, original_message_id)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS reputation_ranks (
+      guild_id TEXT NOT NULL,
+      rank_name TEXT NOT NULL,
+      required_rp INTEGER NOT NULL,
+      role_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, rank_name)
+    );
+  `);
 }

@@ -42,6 +42,54 @@ const commands = [
 				.setName("status")
 				.setDescription("Zeigt den aktuellen Vorstellungs-Forum Status an")
 		),
+	new SlashCommandBuilder()
+		.setName("manage-ranks")
+		.setDescription("Verwaltet Reputation-Ränge (Admin-only)")
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("add")
+				.setDescription("Fügt einen neuen Rang hinzu")
+				.addStringOption(option =>
+					option
+						.setName("name")
+						.setDescription("Name des Rangs")
+						.setRequired(true)
+				)
+				.addIntegerOption(option =>
+					option
+						.setName("rp")
+						.setDescription("Benötigte RP für diesen Rang")
+						.setRequired(true)
+						.setMinValue(0)
+				)
+				.addRoleOption(option =>
+					option
+						.setName("role")
+						.setDescription("Discord-Rolle für diesen Rang")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("remove")
+				.setDescription("Entfernt einen Rang")
+				.addStringOption(option =>
+					option
+						.setName("name")
+						.setDescription("Name des zu entfernenden Rangs")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("list")
+				.setDescription("Zeigt alle konfigurierten Ränge an")
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("sync")
+				.setDescription("Synchronisiert alle User-Ränge (kann dauern)")
+		),
 ].map(command => command.toJSON());
 
 export async function registerSlashCommands() {

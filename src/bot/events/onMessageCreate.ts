@@ -2,6 +2,8 @@ import { Message, PartialMessage } from "discord.js";
 import { awardDailyBonus } from "@/core/usecases/awardDailyBonus";
 import { awardIntroductionBonus } from "@/core/usecases/awardIntroductionBonus";
 import { UserInfo } from "@/core/types/UserInfo";
+import { discordRoleService } from "@/bot/services/discordRoleService";
+import { reputationService } from "@/core/services/reputationService";
 
 async function createUserInfo(userId: string, guild: any): Promise<UserInfo | null> {
 	try {
@@ -99,6 +101,22 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 			console.log(
 				`Introduction ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
 			);
+		}
+
+		// Check for rank updates if any RP was awarded
+		if ((dailyResult.success && dailyResult.awarded) || (introductionResult.success && introductionResult.awarded)) {
+			try {
+				const currentRp = reputationService.getUserReputation(guildId, user.id);
+				const roleUpdate = await discordRoleService.updateUserRank(message.guild!, user.id, currentRp);
+				
+				if (roleUpdate.success && roleUpdate.updated) {
+					console.log(
+						`Rank updated for ${user.username} in guild ${guildId}: ${roleUpdate.previousRole || 'None'} → ${roleUpdate.newRole || 'None'}`
+					);
+				}
+			} catch (rankError) {
+				console.error("Error updating user rank:", rankError);
+			}
 		}
 	} catch (err) {
 		console.error("Error in onMessageCreate:", err);

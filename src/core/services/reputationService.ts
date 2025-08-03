@@ -63,4 +63,16 @@ export const reputationService = {
 		const result = stmt.get(guildId, userId, ...emojis) as { count: number };
 		return result.count > 0;
 	},
+
+	getAllUsersWithRP: (guildId: string): { userId: string; totalRp: number }[] => {
+		const stmt = db.prepare(`
+            SELECT to_user_id as userId, SUM(amount) as totalRp
+            FROM reputation_events
+            WHERE guild_id = ?
+            GROUP BY to_user_id
+            HAVING totalRp > 0
+            ORDER BY totalRp DESC
+        `);
+		return stmt.all(guildId) as { userId: string; totalRp: number }[];
+	},
 };

@@ -2,6 +2,7 @@ import { Interaction } from "discord.js";
 import { handleReputationCommand } from "@/bot/commands/reputation";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroductionChannel";
+import { handleManageRanksCommand } from "@/bot/commands/manageRanks";
 
 export async function onInteractionCreate(interaction: Interaction) {
 	if (!interaction.isChatInputCommand()) {
@@ -18,6 +19,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "set-introduction-channel":
 				await handleSetIntroductionChannelCommand(interaction);
+				break;
+			case "manage-ranks":
+				await handleManageRanksCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);
