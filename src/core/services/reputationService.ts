@@ -31,26 +31,32 @@ export const reputationService = {
         emoji: string;
         amount: number;
     }) => {
-        const stmt = db.prepare(`
-      INSERT OR IGNORE INTO reputation_events (
-        guild_id, message_id, to_user_id, from_user_id, emoji, amount
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-        stmt.run(
-            input.guildId,
-            input.messageId,
-            input.toUserId,
-            input.fromUserId,
-            input.emoji,
-            input.amount
-        );
+        const transaction = db.transaction(() => {
+            const stmt = db.prepare(`
+        INSERT OR IGNORE INTO reputation_events (
+          guild_id, message_id, to_user_id, from_user_id, emoji, amount
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `);
+            stmt.run(
+                input.guildId,
+                input.messageId,
+                input.toUserId,
+                input.fromUserId,
+                input.emoji,
+                input.amount
+            );
+        });
+        transaction();
     },
 
-    removeReputationReaction: (guildId: string, messageId: string, fromUserId: string) => {
-        const stmt = db.prepare(`
-      DELETE FROM reputation_events
-      WHERE guild_id = ? AND message_id = ? AND from_user_id = ?
-    `);
-        stmt.run(guildId, messageId, fromUserId);
+    removeReputationReaction: (guildId: string, messageId: string, fromUserId: string, emoji: string) => {
+        const transaction = db.transaction(() => {
+            const stmt = db.prepare(`
+        DELETE FROM reputation_events
+        WHERE guild_id = ? AND message_id = ? AND from_user_id = ? AND emoji = ?
+      `);
+            stmt.run(guildId, messageId, fromUserId, emoji);
+        });
+        transaction();
     }
 };

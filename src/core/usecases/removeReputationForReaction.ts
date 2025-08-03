@@ -4,6 +4,7 @@ export async function removeReputationForReaction(input: {
     guildId: string;
     messageId: string;
     reactorId: string;
+    emoji: string;
 }) {
-    reputationService.removeReputationReaction(input.guildId, input.messageId, input.reactorId);
+    reputationService.removeReputationReaction(input.guildId, input.messageId, input.reactorId, input.emoji);
 }

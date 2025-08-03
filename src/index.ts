@@ -4,6 +4,7 @@ import {onReactionAdd} from "@/bot/events/onReactionAdd";
 import {onReactionRemove} from "@/bot/events/onReactionRemove";
 import {onInteractionCreate} from "@/bot/events/onInteractionCreate";
 import {registerSlashCommands} from "@/bot/commands/registerCommands";
+import {closeDatabase} from "@/db/sqlite";
 
 import "@/db/sqlite";
 
@@ -45,6 +46,21 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 client.on('interactionCreate', async (interaction) => {
     await onInteractionCreate(interaction);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down gracefully...');
+    client.destroy();
+    closeDatabase();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down gracefully...');
+    client.destroy();
+    closeDatabase();
+    process.exit(0);
 });
 
 client.login(process.env.DISCORD_TOKEN);

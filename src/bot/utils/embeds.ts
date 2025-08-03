@@ -8,7 +8,7 @@ export function createReputationEmbed(user: User, reputation: number): EmbedBuil
         .addFields([
             {
                 name: 'User',
-                value: `${user.displayName} (${user.username})`,
+                value: `${user.displayName || user.username} (${user.username})`,
                 inline: true
             },
             {

@@ -11,13 +11,15 @@ export async function onReactionRemove(reaction: MessageReaction|PartialMessageR
         const guildId = message.guild?.id;
         const messageId = message.id;
         const reactorId = user.id;
+        const emoji = reaction.emoji.name ?? '';
 
         if (!guildId || !messageId || !reactorId) return;
 
         await removeReputationForReaction({
             guildId,
             messageId,
-            reactorId
+            reactorId,
+            emoji
         });
     } catch (err) {
         console.error('Fehler in onReactionRemove:', err);
