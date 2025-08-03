@@ -34,6 +34,19 @@ const client = new Client({
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user?.tag}!`);
     await registerSlashCommands();
+    
+    // Setup cleanup job for rate limit entries (every 6 hours)
+    setInterval(() => {
+        try {
+            const { rateLimitService } = require('@/core/services/rateLimitService');
+            const cleaned = rateLimitService.cleanupOldEntries();
+            if (cleaned > 0) {
+                console.log(`Cleaned up ${cleaned} old rate limit entries`);
+            }
+        } catch (error) {
+            console.error('Error during rate limit cleanup:', error);
+        }
+    }, 6 * 60 * 60 * 1000); // 6 hours
 });
 
 client.on('messageReactionAdd', async (reaction, user, _details) => {

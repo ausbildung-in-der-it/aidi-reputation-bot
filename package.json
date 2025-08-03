@@ -6,7 +6,10 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
-    "build": "rimraf dist && tsc"
+    "build": "rimraf dist && tsc",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
   },
   "_moduleAliases": {
     "@": "dist"
@@ -19,9 +22,11 @@
     "@tsconfig/node22": "^22.0.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.1.0",
+    "@vitest/ui": "^2.1.8",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.3",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
