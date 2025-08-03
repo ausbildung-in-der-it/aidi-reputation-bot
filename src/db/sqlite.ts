@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 
 export const db = new Database('./data.db');
 
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS reputation_events (
     guild_id TEXT NOT NULL,

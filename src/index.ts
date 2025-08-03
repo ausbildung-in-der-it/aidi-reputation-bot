@@ -2,6 +2,8 @@ import 'dotenv/config';
 import {Client, GatewayIntentBits, Partials} from 'discord.js';
 import {onReactionAdd} from "@/bot/events/onReactionAdd";
 import {onReactionRemove} from "@/bot/events/onReactionRemove";
+import {onInteractionCreate} from "@/bot/events/onInteractionCreate";
+import {registerSlashCommands} from "@/bot/commands/registerCommands";
 
 import "@/db/sqlite";
 
@@ -28,8 +30,9 @@ const client = new Client({
     ]
 });
 
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`Logged in as ${client.user?.tag}!`);
+    await registerSlashCommands();
 });
 
 client.on('messageReactionAdd', async (reaction, user, _details) => {
@@ -38,6 +41,10 @@ client.on('messageReactionAdd', async (reaction, user, _details) => {
 
 client.on('messageReactionRemove', async (reaction, user) => {
     await onReactionRemove(reaction, user);
+});
+
+client.on('interactionCreate', async (interaction) => {
+    await onInteractionCreate(interaction);
 });
 
 client.login(process.env.DISCORD_TOKEN);

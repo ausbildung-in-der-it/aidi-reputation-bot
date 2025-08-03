@@ -1,13 +1,26 @@
 import { db } from '@/db/sqlite';
 
 export const reputationService = {
-    givePoint: (guildId: string, toUserId: string) => {
+    getUserReputation: (guildId: string, userId: string): number => {
         const stmt = db.prepare(`
-      INSERT INTO reputation (guild_id, user_id, points)
-      VALUES (?, ?, 1)
-      ON CONFLICT(guild_id, user_id) DO UPDATE SET points = points + 1
-    `);
-        stmt.run(guildId, toUserId);
+            SELECT SUM(amount) as total
+            FROM reputation_events
+            WHERE guild_id = ? AND to_user_id = ?
+        `);
+        const result = stmt.get(guildId, userId) as { total: number | null };
+        return result?.total || 0;
+    },
+
+    getGuildLeaderboard: (guildId: string, limit: number = 10) => {
+        const stmt = db.prepare(`
+            SELECT to_user_id, SUM(amount) as total
+            FROM reputation_events
+            WHERE guild_id = ?
+            GROUP BY to_user_id
+            ORDER BY total DESC
+            LIMIT ?
+        `);
+        return stmt.all(guildId, limit) as { to_user_id: string; total: number }[];
     },
 
     trackReputationReaction: (input: {

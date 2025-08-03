@@ -18,6 +18,4 @@ export async function addReputationForReaction(input: {
         emoji: input.emoji,
         amount: 1
     });
-
-    reputationService.givePoint(input.guildId, input.recipientId);
 }
