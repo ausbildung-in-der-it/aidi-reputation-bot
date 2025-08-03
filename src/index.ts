@@ -3,6 +3,7 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { onReactionAdd } from "@/bot/events/onReactionAdd";
 import { onReactionRemove } from "@/bot/events/onReactionRemove";
 import { onInteractionCreate } from "@/bot/events/onInteractionCreate";
+import { onMessageCreate } from "@/bot/events/onMessageCreate";
 import { registerSlashCommands } from "@/bot/commands/registerCommands";
 import { closeDatabase } from "@/db/sqlite";
 
@@ -57,6 +58,10 @@ client.on("messageReactionRemove", async (reaction, user) => {
 
 client.on("interactionCreate", async interaction => {
 	await onInteractionCreate(interaction);
+});
+
+client.on("messageCreate", async message => {
+	await onMessageCreate(message);
 });
 
 // Graceful shutdown

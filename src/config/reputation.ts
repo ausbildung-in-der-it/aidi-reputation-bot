@@ -17,6 +17,23 @@ export const RATE_LIMIT_CONFIG: RateLimitConfig = {
 	windowHours: 24,
 };
 
+export interface DailyBonusConfig {
+	enabled: boolean;
+	points: number;
+	timezone: string;
+}
+
+export const DAILY_BONUS_CONFIG: DailyBonusConfig = {
+	enabled: true,
+	points: 1,
+	timezone: "Europe/Berlin",
+};
+
+export function getCurrentDateInTimezone(timezone: string): string {
+	const now = new Date();
+	return now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD format
+}
+
 export function getEmojiPoints(emoji: string): number | null {
 	const config = REPUTATION_EMOJIS.find(config => config.emoji === emoji);
 	return config?.points ?? null;

@@ -27,4 +27,14 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, from_user_id, to_user_id, awarded_at)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_bonus_tracking (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      bonus_date TEXT NOT NULL,
+      awarded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, user_id, bonus_date)
+    );
+  `);
 }
