@@ -4,7 +4,7 @@ import { addReputationForReaction } from '@/core/usecases/addReputationForReacti
 import { reputationService } from '@/core/services/reputationService'
 import { ReputationValidationError } from '@/core/types/UserInfo'
 import { createTestDatabase, cleanupTestDatabase } from '../setup/testDb'
-import { createTestUser, createTestBot, generateGuildId, generateMessageId, generateUserId } from '../setup/testUtils'
+import { createTestUser, createTestBot, generateGuildId, generateMessageId } from '../setup/testUtils'
 
 // Mock only config for test reliability
 vi.mock('@/config/reputation', () => ({
@@ -213,7 +213,7 @@ describe('User Gives Reputation', () => {
       }
       
       // First 5 should succeed
-      results.slice(0, 5).forEach((result, index) => {
+      results.slice(0, 5).forEach((result, _index) => {
         expect(result.success).toBe(true)
         expect(result.newTotal).toBe(1) // Each target gets 1 point
       })

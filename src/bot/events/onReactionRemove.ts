@@ -3,9 +3,9 @@ import { removeReputationForReaction } from '@/core/usecases/removeReputationFor
 
 export async function onReactionRemove(reaction: MessageReaction|PartialMessageReaction, user: User|PartialUser) {
     try {
-        if (reaction.partial) await reaction.fetch();
-        if (reaction.message.partial) await reaction.message.fetch();
-        if (user.partial) await user.fetch();
+        if (reaction.partial) {await reaction.fetch();}
+        if (reaction.message.partial) {await reaction.message.fetch();}
+        if (user.partial) {await user.fetch();}
 
         const message = reaction.message;
         const guildId = message.guild?.id;
@@ -13,7 +13,7 @@ export async function onReactionRemove(reaction: MessageReaction|PartialMessageR
         const reactorId = user.id;
         const emoji = reaction.emoji.name ?? '';
 
-        if (!guildId || !messageId || !reactorId) return;
+        if (!guildId || !messageId || !reactorId) {return;}
 
         await removeReputationForReaction({
             guildId,

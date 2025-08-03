@@ -20,9 +20,9 @@ async function createUserInfo(userId: string, guild: any): Promise<UserInfo | nu
 export async function onReactionAdd(reaction: MessageReaction|PartialMessageReaction, user: User|PartialUser) {
     try {
         // Discord API data fetching
-        if (reaction.partial) await reaction.fetch();
-        if (reaction.message.partial) await reaction.message.fetch();
-        if (user.partial) await user.fetch();
+        if (reaction.partial) {await reaction.fetch();}
+        if (reaction.message.partial) {await reaction.message.fetch();}
+        if (user.partial) {await user.fetch();}
 
         const message = reaction.message;
         const guildId = message.guild?.id;
@@ -32,7 +32,7 @@ export async function onReactionAdd(reaction: MessageReaction|PartialMessageReac
         const emoji = reaction.emoji.name ?? '';
 
         // Basic validation of Discord data
-        if (!guildId || !authorId || !reactorId || !message.guild) return;
+        if (!guildId || !authorId || !reactorId || !message.guild) {return;}
 
         // Convert Discord entities to platform-agnostic UserInfo
         const recipient = await createUserInfo(authorId, message.guild);

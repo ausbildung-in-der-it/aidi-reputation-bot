@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3'
 import { createTestDatabase } from './testDb'
 
 // Create isolated test environment with real services
@@ -6,7 +5,6 @@ export function createTestEnvironment() {
   const testDb = createTestDatabase()
   
   // Replace the real db with test db
-  const originalDb = require('@/db/sqlite').db
   Object.setPrototypeOf(require('@/db/sqlite'), { 
     db: testDb,
     closeDatabase: () => testDb.close()

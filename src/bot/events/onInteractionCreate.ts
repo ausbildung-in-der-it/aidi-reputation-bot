@@ -3,7 +3,7 @@ import { handleReputationCommand } from '@/bot/commands/reputation';
 import { handleLeaderboardCommand } from '@/bot/commands/leaderboard';
 
 export async function onInteractionCreate(interaction: Interaction) {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand()) {return;}
 
     try {
         switch (interaction.commandName) {

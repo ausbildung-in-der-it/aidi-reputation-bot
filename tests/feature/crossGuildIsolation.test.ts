@@ -5,7 +5,7 @@ import { reputationService } from '@/core/services/reputationService'
 import { handleReputationCommand } from '@/bot/commands/reputation'
 import { handleLeaderboardCommand } from '@/bot/commands/leaderboard'
 import { createTestDatabase, cleanupTestDatabase } from '../setup/testDb'
-import { createTestUser, generateGuildId, generateUserId, generateMessageId } from '../setup/testUtils'
+import { createTestUser, generateGuildId, generateMessageId } from '../setup/testUtils'
 
 // Mock Discord interactions
 const createReputationMockInteraction = (userId: string, guildId: string, targetUserId?: string) => ({
@@ -17,7 +17,7 @@ const createReputationMockInteraction = (userId: string, guildId: string, target
     displayAvatarURL: () => 'https://example.com/avatar.png'
   },
   options: {
-    getUser: (name: string) => targetUserId ? { 
+    getUser: (_name: string) => targetUserId ? { 
       id: targetUserId,
       username: `user_${targetUserId}`,
       displayName: `User ${targetUserId}`,
@@ -83,7 +83,7 @@ describe('Cross-Guild Isolation', () => {
   let testDb: Database.Database
   let guild1Id: string
   let guild2Id: string
-  let guild3Id: string
+  let _guild3Id: string
 
   beforeEach(async () => {
     testDb = createTestDatabase()
@@ -94,7 +94,7 @@ describe('Cross-Guild Isolation', () => {
     
     guild1Id = generateGuildId()
     guild2Id = generateGuildId()
-    guild3Id = generateGuildId()
+    _guild3Id = generateGuildId()
   })
 
   afterEach(() => {

@@ -46,6 +46,15 @@ src/
 - **Functions:** camelCase, beschreibende Namen (`addReputationForReaction`)
 - **Constants:** UPPER_SNAKE_CASE (`RATE_LIMIT_CONFIG`)
 
+### Code Quality & Linting
+- **Linter:** oxlint für Performance und TypeScript/Node.js Optimierung
+- **Commands:** 
+  - `pnpm lint` - Code auf Fehler prüfen
+  - `pnpm lint:fix` - Automatische Fixes anwenden
+- **Configuration:** `.oxlintrc.json` für projektspezifische Regeln
+- **Unused Code:** Keine ungenutzten Imports/Variablen/Parameter
+- **Naming:** Ungenutzte Parameter mit `_` prefixen (`_index`, `_name`)
+
 ### Error Handling
 - **Typed Errors:** Enums für Business Logic Errors
 - **Result Pattern:** `{ success: boolean, error?: ErrorType }`
@@ -114,6 +123,7 @@ describe('User gives reputation', () => {
 - [ ] Feature Test für User Journey vorhanden
 - [ ] Keine Secrets oder Magic Numbers
 - [ ] Performance: Database Transactions für Multi-Step Operations
+- [ ] Code Quality: `pnpm lint` läuft ohne Fehler
 
 ## 🚀 Deployment & Config
 

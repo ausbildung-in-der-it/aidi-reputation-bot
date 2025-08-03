@@ -3,7 +3,7 @@ import Database from 'better-sqlite3'
 import { handleReputationCommand } from '@/bot/commands/reputation'
 import { reputationService } from '@/core/services/reputationService'
 import { createTestDatabase, cleanupTestDatabase } from '../setup/testDb'
-import { createTestUser, generateGuildId, generateUserId } from '../setup/testUtils'
+import { generateGuildId, generateUserId } from '../setup/testUtils'
 
 // Mock Discord.js interaction
 const createMockInteraction = (userId: string, guildId: string, targetUserId?: string) => ({
@@ -15,7 +15,7 @@ const createMockInteraction = (userId: string, guildId: string, targetUserId?: s
     displayAvatarURL: () => 'https://example.com/avatar.png'
   },
   options: {
-    getUser: (name: string) => targetUserId ? { 
+    getUser: (_name: string) => targetUserId ? { 
       id: targetUserId,
       username: `user_${targetUserId}`,
       displayName: `User ${targetUserId}`,
