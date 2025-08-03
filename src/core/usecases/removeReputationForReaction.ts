@@ -1,10 +1,10 @@
-import { reputationService } from '@/core/services/reputationService';
+import { reputationService } from "@/core/services/reputationService";
 
 export async function removeReputationForReaction(input: {
-    guildId: string;
-    messageId: string;
-    reactorId: string;
-    emoji: string;
+	guildId: string;
+	messageId: string;
+	reactorId: string;
+	emoji: string;
 }) {
-    reputationService.removeReputationReaction(input.guildId, input.messageId, input.reactorId, input.emoji);
+	reputationService.removeReputationReaction(input.guildId, input.messageId, input.reactorId, input.emoji);
 }

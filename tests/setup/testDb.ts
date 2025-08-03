@@ -1,11 +1,11 @@
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 
 export function createTestDatabase(): Database.Database {
-  // Create in-memory database for tests
-  const db = new Database(':memory:');
-  
-  // Create the same tables as production
-  db.exec(`
+	// Create in-memory database for tests
+	const db = new Database(":memory:");
+
+	// Create the same tables as production
+	db.exec(`
     CREATE TABLE IF NOT EXISTS reputation_events (
       guild_id TEXT NOT NULL,
       message_id TEXT NOT NULL,
@@ -18,7 +18,7 @@ export function createTestDatabase(): Database.Database {
     );
   `);
 
-  db.exec(`
+	db.exec(`
     CREATE TABLE IF NOT EXISTS reputation_rate_limits (
       guild_id TEXT NOT NULL,
       from_user_id TEXT NOT NULL,
@@ -28,10 +28,10 @@ export function createTestDatabase(): Database.Database {
     );
   `);
 
-  return db;
+	return db;
 }
 
 export function cleanupTestDatabase(db: Database.Database): void {
-  db.exec('DELETE FROM reputation_events');
-  db.exec('DELETE FROM reputation_rate_limits');
+	db.exec("DELETE FROM reputation_events");
+	db.exec("DELETE FROM reputation_rate_limits");
 }

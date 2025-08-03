@@ -1,11 +1,13 @@
 # Architecture Improvements für bessere Developer Experience
 
 ## 🎯 Ziel
+
 Maximale Developer Experience durch vorhersagbare, selbstdokumentierende Architektur-Patterns.
 
 ## 📊 Aktuelle Architektur Assessment
 
 ### ✅ Stärken
+
 - **Exzellente Clean Architecture** - Klare Schichtentrennung zwischen Discord/Core/DB
 - **Platform-agnostic Business Logic** - Core Layer ohne Discord Dependencies
 - **Starke Domain Abstraktion** - `UserInfo`, `ReputationValidationError` Enums
@@ -16,6 +18,7 @@ Maximale Developer Experience durch vorhersagbare, selbstdokumentierende Archite
 ### 🔄 Architektur-Schwächen für DX
 
 #### 1. **Inkonsistente Error Handling Patterns**
+
 ```typescript
 // Aktuell: Verschiedene Error Patterns
 addReputationForReaction() → ReputationAwardResult { success: boolean, error?: ... }
@@ -26,17 +29,23 @@ handleReputationCommand() → try/catch mit console.error
 ```
 
 #### 2. **Anemic Domain Services**
+
 ```typescript
 // Aktuell: Nur Function Container ohne Business Logic
 export const reputationService = {
-    getUserReputation: (guildId, userId) => { /* SQL */ },
-    trackReputationReaction: (input) => { /* SQL */ }
-}
+  getUserReputation: (guildId, userId) => {
+    /* SQL */
+  },
+  trackReputationReaction: input => {
+    /* SQL */
+  },
+};
 
 // Problem: Business Logic verstreut zwischen Services und Use Cases
 ```
 
 #### 3. **Type Safety nicht maximal ausgeschöpft**
+
 ```typescript
 // Aktuell: Unsafe Type Casting
 const result = stmt.get(guildId, userId) as { total: number | null };
@@ -45,6 +54,7 @@ const result = stmt.get(guildId, userId) as { total: number | null };
 ```
 
 #### 4. **Business Rules an mehreren Stellen**
+
 ```typescript
 // Rate Limiting Logic sowohl in:
 // 1. rateLimitService.checkLimits()
@@ -59,19 +69,19 @@ const result = stmt.get(guildId, userId) as { total: number | null };
 ### 1. **Consistent Result Pattern Implementation**
 
 #### Neues `Result<T, E>` Type System
+
 ```typescript
 // src/core/types/Result.ts
-export type Result<T, E = Error> = 
-  | { success: true; data: T }
-  | { success: false; error: E }
+export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 export const Result = {
   ok: <T>(data: T): Result<T, never> => ({ success: true, data }),
-  err: <E>(error: E): Result<never, E> => ({ success: false, error })
-}
+  err: <E>(error: E): Result<never, E> => ({ success: false, error }),
+};
 ```
 
 #### Alle Use Cases einheitlich
+
 ```typescript
 // Vorher: addReputationForReaction → ReputationAwardResult
 // Nachher: addReputationForReaction → Result<ReputationAward, ReputationError>
@@ -83,7 +93,7 @@ export async function addReputationForReaction(
 }
 
 export async function removeReputationForReaction(
-  input: ReputationRemovalRequest  
+  input: ReputationRemovalRequest
 ): Promise<Result<void, ReputationError>> {
   // Gleiche Pattern wie add
 }
@@ -92,6 +102,7 @@ export async function removeReputationForReaction(
 ### 2. **Rich Domain Objects statt Primitives**
 
 #### Value Objects für Business Concepts
+
 ```typescript
 // src/core/domain/ReputationEvent.ts
 export class ReputationEvent {
@@ -104,7 +115,7 @@ export class ReputationEvent {
     public readonly points: Points,
     public readonly timestamp: Timestamp
   ) {}
-  
+
   static fromReaction(reaction: ReactionInput): Result<ReputationEvent, ValidationError> {
     // Domain Logic hier, nicht in Services
   }
@@ -125,7 +136,7 @@ export class RateLimitWindow {
     private readonly config: RateLimitConfig,
     private readonly windowStart: Timestamp
   ) {}
-  
+
   canAward(existing: ReputationEvent[]): Result<void, RateLimitError> {
     // Alle Rate Limit Logic hier gekapselt
   }
@@ -135,17 +146,18 @@ export class RateLimitWindow {
 ### 3. **Repository Pattern für Data Access**
 
 #### Interface-basierte Data Layer
+
 ```typescript
 // src/core/repositories/IReputationRepository.ts
 export interface IReputationRepository {
-  getUserReputation(guildId: GuildId, userId: UserId): Promise<Points>
-  getLeaderboard(guildId: GuildId, limit: number): Promise<LeaderboardEntry[]>
-  saveReputationEvent(event: ReputationEvent): Promise<Result<void, DatabaseError>>
-  removeReputationEvent(criteria: EventCriteria): Promise<Result<void, DatabaseError>>
-  getReputationHistory(guildId: GuildId, userId: UserId): Promise<ReputationEvent[]>
+  getUserReputation(guildId: GuildId, userId: UserId): Promise<Points>;
+  getLeaderboard(guildId: GuildId, limit: number): Promise<LeaderboardEntry[]>;
+  saveReputationEvent(event: ReputationEvent): Promise<Result<void, DatabaseError>>;
+  removeReputationEvent(criteria: EventCriteria): Promise<Result<void, DatabaseError>>;
+  getReputationHistory(guildId: GuildId, userId: UserId): Promise<ReputationEvent[]>;
 }
 
-// src/infrastructure/repositories/SqliteReputationRepository.ts  
+// src/infrastructure/repositories/SqliteReputationRepository.ts
 export class SqliteReputationRepository implements IReputationRepository {
   // SQLite Implementation Details hier
   // Services kennen nur das Interface
@@ -155,17 +167,18 @@ export class SqliteReputationRepository implements IReputationRepository {
 ### 4. **Centralized Business Rules**
 
 #### Domain Services für Business Logic
+
 ```typescript
 // src/core/domain/ReputationRules.ts
 export class ReputationRules {
   static validateReputationAward(
     recipient: UserInfo,
-    reactor: UserInfo, 
+    reactor: UserInfo,
     emoji: string
   ): Result<void, ReputationValidationError> {
     // Alle Validation Rules hier
     if (recipient.id === reactor.id) {
-      return Result.err(ReputationValidationError.SELF_AWARD)
+      return Result.err(ReputationValidationError.SELF_AWARD);
     }
     // ... etc
   }
@@ -174,12 +187,8 @@ export class ReputationRules {
 // src/core/domain/RateLimitPolicy.ts
 export class RateLimitPolicy {
   constructor(private config: RateLimitConfig) {}
-  
-  checkLimits(
-    reactor: UserInfo,
-    recipient: UserInfo,
-    recentEvents: ReputationEvent[]
-  ): Result<void, RateLimitError> {
+
+  checkLimits(reactor: UserInfo, recipient: UserInfo, recentEvents: ReputationEvent[]): Result<void, RateLimitError> {
     // Alle Rate Limit Logic hier gekapselt
   }
 }
@@ -188,47 +197,53 @@ export class RateLimitPolicy {
 ### 5. **Type-Safe Database Layer**
 
 #### Strongly Typed Database Results
+
 ```typescript
 // src/core/types/DatabaseTypes.ts
 export interface ReputationQueryResult {
-  total: number
+  total: number;
 }
 
 export interface LeaderboardQueryResult {
-  to_user_id: string
-  total: number
+  to_user_id: string;
+  total: number;
 }
 
 // Verwende branded types für IDs
-export type GuildId = string & { readonly brand: unique symbol }
-export type UserId = string & { readonly brand: unique symbol }
-export type MessageId = string & { readonly brand: unique symbol }
+export type GuildId = string & { readonly brand: unique symbol };
+export type UserId = string & { readonly brand: unique symbol };
+export type MessageId = string & { readonly brand: unique symbol };
 ```
 
 ## 📋 Implementation Roadmap
 
 ### Phase 1: Foundation Types
+
 - [ ] `Result<T, E>` Type System
 - [ ] Branded Types für IDs
 - [ ] Domain Error Types
 - [ ] Value Objects (ReputationEvent, etc.)
 
 ### Phase 2: Repository Pattern
+
 - [ ] `IReputationRepository` Interface
 - [ ] `SqliteReputationRepository` Implementation
 - [ ] Services refactoring auf Repository
 
 ### Phase 3: Domain Services
+
 - [ ] `ReputationRules` Domain Service
 - [ ] `RateLimitPolicy` Domain Service
 - [ ] Business Logic aus Use Cases extrahieren
 
 ### Phase 4: Consistent Error Handling
+
 - [ ] Alle Use Cases auf `Result<T, E>` Pattern
 - [ ] Commands Error Handling vereinheitlichen
 - [ ] Error Propagation Testing
 
 ### Phase 5: Rich Domain Objects
+
 - [ ] `LeaderboardEntry` Implementation
 - [ ] `RateLimitWindow` Implementation
 - [ ] Domain Object Integration Testing
@@ -236,6 +251,7 @@ export type MessageId = string & { readonly brand: unique symbol }
 ## 🎯 Expected DX Improvements
 
 ### Vorher: Developer muss sich merken
+
 ```typescript
 // 3 verschiedene Error Patterns
 const result1 = await addReputationForReaction(...)  // ReputationAwardResult
@@ -244,6 +260,7 @@ try { await handleCommand(...) } catch(e) { ... }   // Exception-based
 ```
 
 ### Nachher: Einheitliches Pattern überall
+
 ```typescript
 // Konsistent überall das gleiche Pattern
 const addResult = await addReputationForReaction(...)     // Result<ReputationAward, Error>
@@ -254,6 +271,7 @@ const commandResult = await handleCommand(...)            // Result<CommandRespo
 ```
 
 ### Bessere IDE Support
+
 - **Autocomplete** für Domain Objects statt primitive strings
 - **Type Safety** verhindert Runtime Errors
 - **Self-documenting Code** durch Rich Types
@@ -261,5 +279,5 @@ const commandResult = await handleCommand(...)            // Result<CommandRespo
 
 ---
 
-*Erstellt: Januar 2025*  
-*Status: Specification - Ready for Implementation*
+_Erstellt: Januar 2025_  
+_Status: Specification - Ready for Implementation_
