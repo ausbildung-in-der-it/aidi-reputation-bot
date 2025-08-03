@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import Database from "better-sqlite3";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { reputationService } from "@/core/services/reputationService";
-import { createTestDatabase, cleanupTestDatabase } from "../setup/testDb";
+import { db } from "@/db/sqlite";
 import { generateGuildId, generateUserId, generateMessageId } from "../setup/testUtils";
 
 // Mock Discord.js interaction
@@ -62,27 +61,19 @@ vi.mock("@/config/reputation", () => ({
 }));
 
 describe("User Views Leaderboard", () => {
-	let testDb: Database.Database;
 	let guildId: string;
 	let guildName: string;
 
 	beforeEach(async () => {
-		testDb = createTestDatabase();
-		// Replace db module with test db
-		vi.doMock("@/db/sqlite", () => ({
-			db: testDb,
-			closeDatabase: () => testDb.close(),
-		}));
+		// Clean up test database for each test
+		db.exec("DELETE FROM reputation_events");
+		db.exec("DELETE FROM reputation_rate_limits");
 
 		guildId = generateGuildId();
 		guildName = "Test Guild";
 	});
 
 	afterEach(() => {
-		if (testDb) {
-			cleanupTestDatabase(testDb);
-			testDb.close();
-		}
 		vi.clearAllMocks();
 	});
 

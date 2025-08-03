@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import Database from "better-sqlite3";
 import { addReputationForReaction } from "@/core/usecases/addReputationForReaction";
 import { reputationService } from "@/core/services/reputationService";
 import { ReputationValidationError } from "@/core/types/UserInfo";
-import { createTestDatabase, cleanupTestDatabase } from "../setup/testDb";
+import { db } from "@/db/sqlite";
 import { createTestUser, createTestBot, generateGuildId, generateMessageId } from "../setup/testUtils";
 
 // Mock only config for test reliability
@@ -19,25 +18,16 @@ vi.mock("@/config/reputation", () => ({
 }));
 
 describe("User Gives Reputation", () => {
-	let testDb: Database.Database;
 	let guildId: string;
 
 	beforeEach(async () => {
-		testDb = createTestDatabase();
-		// Replace db module with test db
-		vi.doMock("@/db/sqlite", () => ({
-			db: testDb,
-			closeDatabase: () => testDb.close(),
-		}));
-
+		// Clean up test database for each test
+		db.exec("DELETE FROM reputation_events");
+		db.exec("DELETE FROM reputation_rate_limits");
 		guildId = generateGuildId();
 	});
 
 	afterEach(() => {
-		if (testDb) {
-			cleanupTestDatabase(testDb);
-			testDb.close();
-		}
 		vi.clearAllMocks();
 	});
 

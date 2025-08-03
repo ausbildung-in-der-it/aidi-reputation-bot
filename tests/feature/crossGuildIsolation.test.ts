@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import Database from "better-sqlite3";
 import { addReputationForReaction } from "@/core/usecases/addReputationForReaction";
 import { reputationService } from "@/core/services/reputationService";
 import { handleReputationCommand } from "@/bot/commands/reputation";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
-import { createTestDatabase, cleanupTestDatabase } from "../setup/testDb";
+import { db } from "@/db/sqlite";
 import { createTestUser, generateGuildId, generateMessageId } from "../setup/testUtils";
 
 // Mock Discord interactions
@@ -93,17 +92,14 @@ vi.mock("@/config/reputation", () => ({
 }));
 
 describe("Cross-Guild Isolation", () => {
-	let testDb: Database.Database;
 	let guild1Id: string;
 	let guild2Id: string;
 	let _guild3Id: string;
 
 	beforeEach(async () => {
-		testDb = createTestDatabase();
-		vi.doMock("@/db/sqlite", () => ({
-			db: testDb,
-			closeDatabase: () => testDb.close(),
-		}));
+		// Clean up test database for each test
+		db.exec("DELETE FROM reputation_events");
+		db.exec("DELETE FROM reputation_rate_limits");
 
 		guild1Id = generateGuildId();
 		guild2Id = generateGuildId();
@@ -111,10 +107,6 @@ describe("Cross-Guild Isolation", () => {
 	});
 
 	afterEach(() => {
-		if (testDb) {
-			cleanupTestDatabase(testDb);
-			testDb.close();
-		}
 		vi.clearAllMocks();
 	});
 

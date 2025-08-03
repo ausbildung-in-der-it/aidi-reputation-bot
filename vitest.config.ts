@@ -5,6 +5,10 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: "node",
+		env: {
+			// Use in-memory database for tests
+			DATABASE_URL: ":memory:",
+		},
 	},
 	resolve: {
 		alias: {

@@ -1,10 +1,10 @@
 import Database from "better-sqlite3";
 
-export function createTestDatabase(): Database.Database {
-	// Create in-memory database for tests
-	const db = new Database(":memory:");
-
-	// Create the same tables as production
+/**
+ * Creates the database schema tables for the reputation bot.
+ * This function is shared between production and test environments.
+ */
+export function createTables(db: Database.Database): void {
 	db.exec(`
     CREATE TABLE IF NOT EXISTS reputation_events (
       guild_id TEXT NOT NULL,
@@ -27,11 +27,4 @@ export function createTestDatabase(): Database.Database {
       PRIMARY KEY (guild_id, from_user_id, to_user_id, awarded_at)
     );
   `);
-
-	return db;
-}
-
-export function cleanupTestDatabase(db: Database.Database): void {
-	db.exec("DELETE FROM reputation_events");
-	db.exec("DELETE FROM reputation_rate_limits");
 }

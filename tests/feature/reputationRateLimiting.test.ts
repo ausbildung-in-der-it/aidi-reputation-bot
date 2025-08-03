@@ -1,22 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import Database from "better-sqlite3";
 import { addReputationForReaction } from "@/core/usecases/addReputationForReaction";
 import { ReputationValidationError } from "@/core/types/UserInfo";
-import { createTestDatabase, cleanupTestDatabase } from "../setup/testDb";
+import { db } from "@/db/sqlite";
 import { createTestUser, createTestBot, generateGuildId, generateMessageId, generateUserId } from "../setup/testUtils";
-
-// Mock the database module
-vi.mock("@/db/sqlite", () => {
-	let mockDb: Database.Database;
-	return {
-		get db() {
-			return mockDb;
-		},
-		setMockDb: (db: Database.Database) => {
-			mockDb = db;
-		},
-	};
-});
 
 // Mock the config to speed up tests
 vi.mock("@/config/reputation", () => ({
@@ -31,17 +17,15 @@ vi.mock("@/config/reputation", () => ({
 }));
 
 describe("Reputation Rate Limiting Feature", () => {
-	let testDb: Database.Database;
 	let guildId: string;
 	let messageId: string;
 	let reactor: ReturnType<typeof createTestUser>;
 	let recipient: ReturnType<typeof createTestUser>;
 
 	beforeEach(async () => {
-		testDb = createTestDatabase();
-		// Set the mock database
-		const { setMockDb } = await import("@/db/sqlite");
-		setMockDb(testDb);
+		// Clean up test database for each test
+		db.exec("DELETE FROM reputation_events");
+		db.exec("DELETE FROM reputation_rate_limits");
 
 		// Create test data
 		guildId = generateGuildId();
@@ -51,10 +35,7 @@ describe("Reputation Rate Limiting Feature", () => {
 	});
 
 	afterEach(() => {
-		if (testDb) {
-			cleanupTestDatabase(testDb);
-			testDb.close();
-		}
+		vi.clearAllMocks();
 	});
 
 	describe("Basic Reputation Award", () => {
