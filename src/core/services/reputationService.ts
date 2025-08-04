@@ -23,6 +23,23 @@ export const reputationService = {
 		return stmt.all(guildId, limit) as { to_user_id: string; total: number }[];
 	},
 
+	getGuildLeaderboardWithExclusions: (guildId: string, limit: number = 10, excludedRoleIds: string[]) => {
+		if (excludedRoleIds.length === 0) {
+			return reputationService.getGuildLeaderboard(guildId, limit);
+		}
+
+		const stmt = db.prepare(`
+            SELECT to_user_id, SUM(amount) as total
+            FROM reputation_events
+            WHERE guild_id = ?
+            GROUP BY to_user_id
+            ORDER BY total DESC
+        `);
+		const allResults = stmt.all(guildId) as { to_user_id: string; total: number }[];
+		
+		return allResults.slice(0, limit);
+	},
+
 	trackReputationReaction: (input: {
 		guildId: string;
 		messageId: string;

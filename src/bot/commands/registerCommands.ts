@@ -69,6 +69,28 @@ const commands = [
 		.addUserOption(option =>
 			option.setName("user").setDescription("Der User dessen Rate Limits angezeigt werden sollen").setRequired(false)
 		),
+	new SlashCommandBuilder()
+		.setName("leaderboard-exclusions")
+		.setDescription("Verwaltet Leaderboard-Ausschlüsse für Rollen (Admin-only)")
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("add")
+				.setDescription("Schließt eine Rolle vom Leaderboard aus")
+				.addRoleOption(option =>
+					option.setName("role").setDescription("Die Rolle die ausgeschlossen werden soll").setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("remove")
+				.setDescription("Entfernt eine Rolle vom Leaderboard-Ausschluss")
+				.addRoleOption(option =>
+					option.setName("role").setDescription("Die Rolle die wieder eingeschlossen werden soll").setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand.setName("list").setDescription("Zeigt alle vom Leaderboard ausgeschlossenen Rollen an")
+		),
 	notificationChannelCommand,
 ].map(command => command.toJSON());
 

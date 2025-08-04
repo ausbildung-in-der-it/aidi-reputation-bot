@@ -77,4 +77,14 @@ export function createTables(db: Database.Database): void {
       configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS leaderboard_excluded_roles (
+      guild_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      configured_by TEXT NOT NULL,
+      configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, role_id)
+    );
+  `);
 }

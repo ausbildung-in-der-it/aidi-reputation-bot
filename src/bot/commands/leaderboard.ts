@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction } from "discord.js";
 import { reputationService } from "@/core/services/reputationService";
 import { createLeaderboardEmbed } from "@/bot/utils/embeds";
+import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
 
 export async function handleLeaderboardCommand(interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
@@ -17,9 +18,38 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
 	const guildName = interaction.guild.name;
 
 	try {
-		const leaderboard = reputationService.getGuildLeaderboard(guildId, limit);
-		const embed = createLeaderboardEmbed(leaderboard, guildName);
+		const excludedRoleIds = leaderboardExclusionService.getExcludedRoleIds(guildId);
+		let leaderboard = reputationService.getGuildLeaderboard(guildId, limit * 2);
 
+		if (excludedRoleIds.length > 0) {
+			const filteredLeaderboard = [];
+			
+			for (const entry of leaderboard) {
+				try {
+					const member = await interaction.guild.members.fetch(entry.to_user_id);
+					const hasExcludedRole = member.roles.cache.some(role => excludedRoleIds.includes(role.id));
+					
+					if (!hasExcludedRole) {
+						filteredLeaderboard.push(entry);
+					}
+					
+					if (filteredLeaderboard.length >= limit) {
+						break;
+					}
+				} catch {
+					filteredLeaderboard.push(entry);
+					if (filteredLeaderboard.length >= limit) {
+						break;
+					}
+				}
+			}
+			
+			leaderboard = filteredLeaderboard;
+		} else {
+			leaderboard = leaderboard.slice(0, limit);
+		}
+
+		const embed = createLeaderboardEmbed(leaderboard, guildName);
 		await interaction.reply({ embeds: [embed] });
 	} catch (error) {
 		console.error("Error in leaderboard command:", error);
