@@ -129,7 +129,9 @@ export const roleManagementService = {
         `);
 		const result = stmt.get(guildId, rankName) as any;
 		
-		if (!result) return null;
+		if (!result) {
+			return null;
+		}
 		
 		return {
 			guildId: result.guild_id,

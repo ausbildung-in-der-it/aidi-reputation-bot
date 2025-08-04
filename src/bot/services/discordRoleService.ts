@@ -1,5 +1,5 @@
-import { Guild, GuildMember } from "discord.js";
-import { roleManagementService, ReputationRank } from "@/core/services/roleManagementService";
+import { Guild } from "discord.js";
+import { roleManagementService } from "@/core/services/roleManagementService";
 import { reputationService } from "@/core/services/reputationService";
 
 export interface RoleUpdateResult {

@@ -60,7 +60,7 @@ export async function removeIntroductionChannel(input: RemoveChannelInput): Prom
 		}
 
 		// Remove the configuration
-		const removed = introductionChannelService.removeChannelConfig(input.guildId);
+		introductionChannelService.removeChannelConfig(input.guildId);
 
 		return {
 			success: true,

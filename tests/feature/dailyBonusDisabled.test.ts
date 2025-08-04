@@ -11,7 +11,7 @@ vi.mock("@/config/reputation", () => ({
 		points: 1,
 		timezone: "Europe/Berlin",
 	},
-	getCurrentDateInTimezone: (timezone: string) => "2024-01-15",
+	getCurrentDateInTimezone: (_timezone: string) => "2024-01-15",
 }));
 
 describe("Daily Bonus Disabled", () => {

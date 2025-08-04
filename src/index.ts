@@ -1,3 +1,4 @@
+import "module-alias/register";
 import "dotenv/config";
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { onReactionAdd } from "@/bot/events/onReactionAdd";

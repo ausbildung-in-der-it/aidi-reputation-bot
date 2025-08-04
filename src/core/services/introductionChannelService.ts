@@ -15,7 +15,9 @@ export const introductionChannelService = {
             WHERE guild_id = ?
         `);
 		const result = stmt.get(guildId) as any;
-		if (!result) return null;
+		if (!result) {
+			return null;
+		}
 		
 		return {
 			guildId: result.guild_id,

@@ -66,8 +66,8 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 		// Detect thread starter vs thread reply
 		// Thread starter: Message author is thread owner AND it's the very first message (within 1 second) AND no message reference
 		const isThreadOwner = 'ownerId' in channel && channel.ownerId === message.author?.id;
-		const isVeryFirstMessage = message.createdTimestamp && 'createdTimestamp' in channel && 
-			Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) < 1000; // Within 1 second only
+		const isVeryFirstMessage = !!(message.createdTimestamp && 'createdTimestamp' in channel && 
+			Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) < 1000); // Within 1 second only
 		const hasNoReference = !message.reference?.messageId; // Thread starters don't reference other messages
 		
 		const isThreadStarter = isThreadOwner && isVeryFirstMessage && hasNoReference;

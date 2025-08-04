@@ -12,7 +12,7 @@ vi.mock("@/config/reputation", () => ({
 		points: 1,
 		timezone: "Europe/Berlin",
 	},
-	getCurrentDateInTimezone: (timezone: string) => "2024-01-15", // Fixed test date
+	getCurrentDateInTimezone: (_timezone: string) => "2024-01-15", // Fixed test date
 }));
 
 describe("User Receives Daily Bonus", () => {
