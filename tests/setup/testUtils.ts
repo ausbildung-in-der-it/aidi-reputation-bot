@@ -31,3 +31,18 @@ export function generateMessageId(): string {
 export function generateUserId(): string {
 	return `user_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export function createDiscordUser(
+	id: string,
+	options: {
+		username?: string;
+		displayName?: string;
+	} = {}
+) {
+	return {
+		id,
+		username: options.username ?? `user_${id}`,
+		displayName: options.displayName ?? `User ${id}`,
+		displayAvatarURL: () => `https://cdn.discordapp.com/avatars/${id}/avatar.png`,
+	};
+}

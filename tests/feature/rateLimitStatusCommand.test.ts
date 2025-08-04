@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { rateLimitStatusService } from "@/core/services/rateLimitStatusService";
 import { rateLimitService } from "@/core/services/rateLimitService";
 import { dailyBonusService } from "@/core/services/dailyBonusService";
 import { introductionReplyService } from "@/core/services/introductionReplyService";
+import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
 import { db } from "@/db/sqlite";
-import { createTestUser, generateGuildId } from "../setup/testUtils";
+import { createTestUser, createDiscordUser, generateGuildId } from "../setup/testUtils";
 
 describe("Rate Limit Status Command", () => {
 	let testGuildId: string;
@@ -154,6 +155,115 @@ describe("Rate Limit Status Command", () => {
 			// Each guild should only see their own usage
 			expect(statusGuild1.trophies.used).toBe(1);
 			expect(statusGuild2.trophies.used).toBe(1);
+		});
+	});
+
+	describe("Admin Permission Enforcement", () => {
+		it("should allow users to view their own rate limits", async () => {
+			const user = createDiscordUser("user_123");
+			
+			const mockInteraction = {
+				guild: { id: testGuildId },
+				user: user,
+				options: {
+					getUser: vi.fn().mockReturnValue(null), // No user parameter = own rates
+				},
+				memberPermissions: null, // No admin permission needed for own rates
+				reply: vi.fn(),
+			} as any;
+
+			await handleRateLimitsCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				embeds: expect.any(Array),
+			});
+		});
+
+		it("should allow users to explicitly view their own rate limits", async () => {
+			const user = createDiscordUser("user_123");
+			
+			const mockInteraction = {
+				guild: { id: testGuildId },
+				user: user,
+				options: {
+					getUser: vi.fn().mockReturnValue(user), // Same user as requester
+				},
+				memberPermissions: null,
+				reply: vi.fn(),
+			} as any;
+
+			await handleRateLimitsCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				embeds: expect.any(Array),
+			});
+		});
+
+		it("should deny non-admin users access to other users' rate limits", async () => {
+			const requester = createDiscordUser("requester_123");
+			const targetUser = createDiscordUser("target_456");
+			
+			const mockInteraction = {
+				guild: { id: testGuildId },
+				user: requester,
+				options: {
+					getUser: vi.fn().mockReturnValue(targetUser),
+				},
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Not an admin
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleRateLimitsCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: "Du benötigst Administrator-Berechtigung um die Rate Limits anderer User anzuzeigen.",
+				ephemeral: true,
+			});
+		});
+
+		it("should allow admin users to view other users' rate limits", async () => {
+			const admin = createDiscordUser("admin_123");
+			const targetUser = createDiscordUser("target_456");
+			
+			const mockInteraction = {
+				guild: { id: testGuildId },
+				user: admin,
+				options: {
+					getUser: vi.fn().mockReturnValue(targetUser),
+				},
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Is an admin
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleRateLimitsCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				embeds: expect.any(Array),
+			});
+		});
+
+		it("should handle guild-only command restriction", async () => {
+			const user = createDiscordUser("user_123");
+			
+			const mockInteraction = {
+				guild: null, // Not in a guild
+				user: user,
+				options: {
+					getUser: vi.fn().mockReturnValue(null),
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleRateLimitsCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: "Dieser Command kann nur in einem Server verwendet werden.",
+				ephemeral: true,
+			});
 		});
 	});
 });
