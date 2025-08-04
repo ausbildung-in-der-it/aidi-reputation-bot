@@ -14,11 +14,7 @@ export const discordRoleService = {
 	/**
 	 * Update a user's reputation rank role in Discord
 	 */
-	updateUserRank: async (
-		guild: Guild,
-		userId: string,
-		currentRp: number
-	): Promise<RoleUpdateResult> => {
+	updateUserRank: async (guild: Guild, userId: string, currentRp: number): Promise<RoleUpdateResult> => {
 		try {
 			// Get the member
 			const member = await guild.members.fetch(userId).catch(() => null);
@@ -32,20 +28,18 @@ export const discordRoleService = {
 
 			// Get current eligible rank
 			const newRank = roleManagementService.getUserEligibleRank(guild.id, currentRp);
-			
+
 			// Get all reputation ranks for this guild to find current role
 			const allRanks = roleManagementService.getRanksForGuild(guild.id);
 			const currentReputationRoles = allRanks.map(rank => rank.roleId);
-			
+
 			// Find which reputation role the user currently has
-			const currentRankRole = member.roles.cache.find(role => 
-				currentReputationRoles.includes(role.id)
-			);
+			const currentRankRole = member.roles.cache.find(role => currentReputationRoles.includes(role.id));
 
 			// Check if any update is needed
 			const shouldHaveRole = newRank !== null;
 			const currentlyHasRole = currentRankRole !== undefined;
-			
+
 			// If user should have a specific role and already has that exact role, no update needed
 			if (shouldHaveRole && currentlyHasRole && newRank.roleId === currentRankRole.id) {
 				return {
@@ -55,7 +49,7 @@ export const discordRoleService = {
 					newRole: currentRankRole.name,
 				};
 			}
-			
+
 			// If user should have no role and currently has no reputation role, no update needed
 			if (!shouldHaveRole && !currentlyHasRole) {
 				return {
@@ -110,7 +104,7 @@ export const discordRoleService = {
 
 		try {
 			console.log(`Starting rank sync for guild ${guild.id}...`);
-			
+
 			// Get all users with RP in this guild
 			const usersWithRP = reputationService.getAllUsersWithRP(guild.id);
 			console.log(`Found ${usersWithRP.length} users with RP to sync`);
@@ -119,11 +113,13 @@ export const discordRoleService = {
 			for (const userRp of usersWithRP) {
 				try {
 					const result = await discordRoleService.updateUserRank(guild, userRp.userId, userRp.totalRp);
-					
+
 					if (result.success) {
 						success++;
 						if (result.updated) {
-							console.log(`Updated rank for user ${userRp.userId}: ${result.previousRole || 'None'} → ${result.newRole || 'None'} (${userRp.totalRp} RP)`);
+							console.log(
+								`Updated rank for user ${userRp.userId}: ${result.previousRole || "None"} → ${result.newRole || "None"} (${userRp.totalRp} RP)`
+							);
 						}
 					} else {
 						failed++;

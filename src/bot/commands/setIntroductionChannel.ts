@@ -118,7 +118,8 @@ async function handleShowStatus(interaction: ChatInputCommandInteraction, guildI
 
 	if (!config) {
 		await interaction.reply({
-			content: "❌ Kein Vorstellungs-Forum konfiguriert.\n\nVerwende `/set-introduction-channel set` um ein Forum zu konfigurieren.",
+			content:
+				"❌ Kein Vorstellungs-Forum konfiguriert.\n\nVerwende `/set-introduction-channel set` um ein Forum zu konfigurieren.",
 			ephemeral: true,
 		});
 		return;

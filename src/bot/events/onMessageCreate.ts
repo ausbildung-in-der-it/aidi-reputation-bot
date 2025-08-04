@@ -4,6 +4,7 @@ import { awardIntroductionBonus } from "@/core/usecases/awardIntroductionBonus";
 import { UserInfo } from "@/core/types/UserInfo";
 import { discordRoleService } from "@/bot/services/discordRoleService";
 import { reputationService } from "@/core/services/reputationService";
+import { getDiscordNotificationService } from "@/bot/services/discordNotificationService";
 
 async function createUserInfo(userId: string, guild: any): Promise<UserInfo | null> {
 	try {
@@ -55,30 +56,35 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 
 		// 2. Check for introduction channel bonus (Forum Channels only)
 		const channel = message.channel;
-		
+
 		// Only process messages in forum threads
-		if (!channel || !('parent' in channel) || !channel.parent?.id) {
+		if (!channel || !("parent" in channel) || !channel.parent?.id) {
 			return; // Skip non-forum messages
 		}
-		
+
 		const forumChannelId = channel.parent.id;
-		
+
 		// Detect thread starter vs thread reply
 		// Thread starter: Message author is thread owner AND it's the very first message (within 1 second) AND no message reference
-		const isThreadOwner = 'ownerId' in channel && channel.ownerId === message.author?.id;
-		const isVeryFirstMessage = !!(message.createdTimestamp && 'createdTimestamp' in channel && 
-			Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) < 1000); // Within 1 second only
+		const isThreadOwner = "ownerId" in channel && channel.ownerId === message.author?.id;
+		const isVeryFirstMessage = !!(
+			message.createdTimestamp &&
+			"createdTimestamp" in channel &&
+			Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) < 1000
+		); // Within 1 second only
 		const hasNoReference = !message.reference?.messageId; // Thread starters don't reference other messages
-		
+
 		const isThreadStarter = isThreadOwner && isVeryFirstMessage && hasNoReference;
 		const isThreadReply = !isThreadStarter;
-		
+
 		// For forum thread replies, use thread ID as the original message reference
 		const originalMessageId = isThreadReply ? channel.id : undefined;
-		
+
 		// Debug logging
-		console.log(`Forum message debug: threadId=${channel.id}, authorId=${message.author?.id}, ownerId=${'ownerId' in channel ? channel.ownerId : 'N/A'}, timeDiff=${message.createdTimestamp && 'createdTimestamp' in channel ? Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) : 'N/A'}ms, hasNoReference=${hasNoReference}, isThreadStarter=${isThreadStarter}, isThreadReply=${isThreadReply}`);
-		
+		console.log(
+			`Forum message debug: threadId=${channel.id}, authorId=${message.author?.id}, ownerId=${"ownerId" in channel ? channel.ownerId : "N/A"}, timeDiff=${message.createdTimestamp && "createdTimestamp" in channel ? Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) : "N/A"}ms, hasNoReference=${hasNoReference}, isThreadStarter=${isThreadStarter}, isThreadReply=${isThreadReply}`
+		);
+
 		const introductionResult = await awardIntroductionBonus({
 			guildId,
 			channelId: forumChannelId,
@@ -87,31 +93,61 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 			isReply: isThreadReply,
 			originalMessageId,
 			isThreadStarter,
-			threadOwnerId: 'ownerId' in channel ? channel.ownerId : undefined,
+			threadOwnerId: "ownerId" in channel ? channel.ownerId : undefined,
 		});
 
-		// Optional: Log successful bonus awards
-		if (dailyResult.success && dailyResult.awarded) {
+		// Send notifications for successful bonus awards
+		const notificationService = getDiscordNotificationService();
+
+		if (dailyResult.success && dailyResult.awarded && notificationService) {
 			console.log(
 				`Daily bonus awarded: ${dailyResult.points} RP to ${user.username} in guild ${guildId} on ${dailyResult.bonusDate}`
 			);
+
+			await notificationService.sendNotification({
+				type: "daily_bonus",
+				guildId,
+				userId: user.id,
+				userName: user.displayName,
+				points: dailyResult.points,
+				context: {
+					sourceType: "daily",
+				},
+			});
 		}
 
-		if (introductionResult.success && introductionResult.awarded) {
+		if (introductionResult.success && introductionResult.awarded && notificationService) {
 			console.log(
 				`Introduction ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
 			);
+
+			const channelName = message.channel && "name" in message.channel ? message.channel.name : undefined;
+
+			await notificationService.sendNotification({
+				type: "introduction_bonus",
+				guildId,
+				userId: user.id,
+				userName: user.displayName,
+				points: introductionResult.points,
+				context: {
+					channelName,
+					sourceType: introductionResult.bonusType === "post" ? "post" : "reply",
+				},
+			});
 		}
 
 		// Check for rank updates if any RP was awarded
-		if ((dailyResult.success && dailyResult.awarded) || (introductionResult.success && introductionResult.awarded)) {
+		if (
+			(dailyResult.success && dailyResult.awarded) ||
+			(introductionResult.success && introductionResult.awarded)
+		) {
 			try {
 				const currentRp = reputationService.getUserReputation(guildId, user.id);
 				const roleUpdate = await discordRoleService.updateUserRank(message.guild!, user.id, currentRp);
-				
+
 				if (roleUpdate.success && roleUpdate.updated) {
 					console.log(
-						`Rank updated for ${user.username} in guild ${guildId}: ${roleUpdate.previousRole || 'None'} → ${roleUpdate.newRole || 'None'}`
+						`Rank updated for ${user.username} in guild ${guildId}: ${roleUpdate.previousRole || "None"} → ${roleUpdate.newRole || "None"}`
 					);
 				}
 			} catch (rankError) {

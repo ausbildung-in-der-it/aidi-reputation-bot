@@ -18,7 +18,7 @@ export const introductionChannelService = {
 		if (!result) {
 			return null;
 		}
-		
+
 		return {
 			guildId: result.guild_id,
 			channelId: result.channel_id,

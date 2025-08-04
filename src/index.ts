@@ -1,4 +1,9 @@
-import "module-alias/register";
+// Configure module alias for development vs production
+if (process.env.NODE_ENV !== "production") {
+	require("module-alias").addAlias("@", __dirname);
+} else {
+	require("module-alias/register");
+}
 import "dotenv/config";
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { onReactionAdd } from "@/bot/events/onReactionAdd";
@@ -7,6 +12,7 @@ import { onInteractionCreate } from "@/bot/events/onInteractionCreate";
 import { onMessageCreate } from "@/bot/events/onMessageCreate";
 import { registerSlashCommands } from "@/bot/commands/registerCommands";
 import { closeDatabase } from "@/db/sqlite";
+import { initializeDiscordNotificationService } from "@/bot/services/discordNotificationService";
 
 import "@/db/sqlite";
 
@@ -31,6 +37,9 @@ const client = new Client({
 client.once("ready", async () => {
 	console.log(`Logged in as ${client.user?.tag}!`);
 	await registerSlashCommands();
+
+	// Initialize notification service
+	initializeDiscordNotificationService(client);
 
 	// Setup cleanup job for rate limit entries (every 6 hours)
 	setInterval(

@@ -3,6 +3,7 @@ import { handleReputationCommand } from "@/bot/commands/reputation";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroductionChannel";
 import { handleManageRanksCommand } from "@/bot/commands/manageRanks";
+import { execute as handleNotificationChannelCommand } from "@/bot/commands/setNotificationChannel";
 
 export async function onInteractionCreate(interaction: Interaction) {
 	if (!interaction.isChatInputCommand()) {
@@ -22,6 +23,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "manage-ranks":
 				await handleManageRanksCommand(interaction);
+				break;
+			case "notification-channel":
+				await handleNotificationChannelCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);

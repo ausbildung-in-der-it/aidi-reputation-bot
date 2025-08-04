@@ -67,4 +67,14 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, rank_name)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS notification_channel_config (
+      guild_id TEXT NOT NULL PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT 1,
+      configured_by TEXT NOT NULL,
+      configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }

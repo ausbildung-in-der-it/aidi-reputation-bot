@@ -99,11 +99,10 @@ function handlePostBonus(input: IntroductionBonusInput): IntroductionBonusResult
 	const emoji = input.isThreadStarter ? "forum_post" : "introduction_post";
 
 	// Check if user already received introduction post bonus in this guild
-	const existingPostBonus = reputationService.hasUserReceivedBonus(
-		input.guildId,
-		input.user.id,
-		["introduction_post", "forum_post"]
-	);
+	const existingPostBonus = reputationService.hasUserReceivedBonus(input.guildId, input.user.id, [
+		"introduction_post",
+		"forum_post",
+	]);
 
 	if (existingPostBonus) {
 		return {
@@ -157,11 +156,7 @@ function handleReplyBonus(input: IntroductionBonusInput): IntroductionBonusResul
 	}
 
 	// Check reply limits
-	const limitCheck = introductionReplyService.checkReplyLimits(
-		input.guildId,
-		input.user.id,
-		input.originalMessageId
-	);
+	const limitCheck = introductionReplyService.checkReplyLimits(input.guildId, input.user.id, input.originalMessageId);
 
 	if (!limitCheck.canReply) {
 		return {

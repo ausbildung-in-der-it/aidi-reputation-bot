@@ -87,6 +87,83 @@ src/
 - **Calculated Fields:** Reputation wird aus Events berechnet
 - **Rate Limiting:** Separate `reputation_rate_limits` Tabelle
 
+### Database Migrations (Live-Safe Strategy)
+
+⚠️ **WICHTIG:** Die Anwendung läuft LIVE. Migrations müssen 100% rückwärtskompatibel sein.
+
+#### Migration Prinzipien (Laravel-Style)
+
+- **Forward-Only:** Nur additive Änderungen, nie destructive
+- **Incremental:** Kleine, atomare Schema-Änderungen
+- **Resilient:** Schema-Änderungen dürfen nie die App crashen
+- **Zero-Downtime:** Migrations laufen während die App online ist
+
+#### ✅ Erlaubte Migration-Operationen
+
+```sql
+-- ✅ Neue Tabellen hinzufügen
+CREATE TABLE IF NOT EXISTS new_feature_table (...)
+
+-- ✅ Neue Spalten hinzufügen (mit DEFAULT)
+ALTER TABLE existing_table ADD COLUMN new_field TEXT DEFAULT 'default_value'
+
+-- ✅ Neue Indices hinzufügen
+CREATE INDEX IF NOT EXISTS idx_performance ON table_name (column)
+
+-- ✅ Neue Constraints hinzufügen (mit IF NOT EXISTS Pattern)
+-- Nur wenn sie nicht Breaking sind
+```
+
+#### ❌ VERBOTENE Migration-Operationen
+
+```sql
+-- ❌ NIE: Tabellen löschen
+DROP TABLE old_table
+
+-- ❌ NIE: Spalten löschen
+ALTER TABLE table DROP COLUMN old_column
+
+-- ❌ NIE: Spalten umbenennen
+ALTER TABLE table RENAME COLUMN old TO new
+
+-- ❌ NIE: Datentypen ändern ohne Kompatibilität
+ALTER TABLE table ALTER COLUMN field TYPE new_type
+
+-- ❌ NIE: NOT NULL Constraints auf bestehende Spalten
+ALTER TABLE table ALTER COLUMN field SET NOT NULL
+```
+
+#### Migration Workflow
+
+1. **Schema erweitern:** Neue Tabellen/Spalten hinzufügen
+2. **Code anpassen:** Neue und alte Struktur parallel unterstützen
+3. **Data Migration:** Background-Jobs für Daten-Umzug (falls nötig)
+4. **Cleanup:** Alte Strukturen erst nach Wochen/Monaten deprecaten
+
+#### Beispiel: Feature hinzufügen
+
+```typescript
+// ✅ Migration: Neue Tabelle in schema.ts
+db.exec(`
+  CREATE TABLE IF NOT EXISTS new_feature_config (
+    guild_id TEXT NOT NULL PRIMARY KEY,
+    setting_value TEXT NOT NULL DEFAULT 'default',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// ✅ Service: Graceful Fallbacks
+const getFeatureSetting = (guildId: string) => {
+  try {
+    const result = stmt.get(guildId);
+    return result?.setting_value || "default";
+  } catch (error) {
+    console.error("Feature config error:", error);
+    return "default"; // Graceful degradation
+  }
+};
+```
+
 ## 🧪 Test Strategie (DHH-Style)
 
 ### Test Philosophie
@@ -95,6 +172,82 @@ src/
 - **Real Dependencies:** In-memory SQLite, echte Services
 - **Minimal Mocking:** Nur Config und Discord API
 - **User Journey Focus:** Teste das Verhalten, nicht die Implementation
+- **Test-First Development:** Feature Test vor Implementation schreiben
+
+### Test-First Development Prozess
+
+#### 1. Feature Test zuerst schreiben
+
+```typescript
+// ❌ Test schlägt fehl - Feature existiert noch nicht
+describe("User configures notification channel", () => {
+  it("should send notifications when RP is earned", async () => {
+    // Arrange: Setup test environment
+    await configureNotificationChannel({
+      guildId: "test_guild",
+      channelId: "test_channel",
+      configuredBy: admin,
+    });
+
+    // Act: Award reputation (triggers notification)
+    const result = await addReputationForReaction({
+      guildId: "test_guild",
+      recipient: testUser,
+      reactor: giver,
+      emoji: "🏆",
+    });
+
+    // Assert: Notification should be sent
+    expect(result.success).toBe(true);
+    const notification = notificationService.notify({
+      type: "trophy_given",
+      guildId: "test_guild",
+      userId: giver.id,
+      userName: giver.displayName,
+      points: 1,
+    });
+    expect(notification).not.toBeNull();
+  });
+});
+```
+
+#### 2. Minimale Implementation für Green
+
+```typescript
+// ✅ Minimal implementierung um Test zu bestehen
+export const notificationService = {
+  notify: () => ({ channelId: "test", message: "test" }),
+};
+```
+
+#### 3. Refactor zu vollständiger Lösung
+
+```typescript
+// ✅ Vollständige, production-ready Implementation
+export const notificationService = {
+  notify: (event: NotificationEvent) => {
+    const config = getChannelConfig(event.guildId);
+    if (!config?.enabled) return null;
+
+    return {
+      channelId: config.channelId,
+      message: formatMessage(event),
+    };
+  },
+};
+```
+
+#### 4. Edge Cases als zusätzliche Tests
+
+```typescript
+it("should return null when notifications disabled", () => {
+  // Test für deaktivierte Notifications
+});
+
+it("should handle missing channel gracefully", () => {
+  // Test für Error-Handling
+});
+```
 
 ### Test Struktur
 
@@ -141,22 +294,85 @@ describe("User gives reputation", () => {
 
 ## 🔄 Development Workflow
 
-### TDD Cycle
+### Feature Development (Live-Safe)
 
-1. **Red:** Test schreiben → ausführen → fehlschlagen sehen
+#### 1. Planning & Test-First
+
+```bash
+# 1. Feature Test schreiben (failing)
+touch tests/feature/newFeature.test.ts
+pnpm test tests/feature/newFeature.test.ts # ❌ Red
+
+# 2. DB Migration (if needed) - nur additive Änderungen
+# Schema in src/db/schema.ts erweitern
+```
+
+#### 2. Implementation
+
+```bash
+# 3. Core Logic implementieren
+mkdir -p src/core/services src/core/usecases
+
+# 4. Minimal Implementation für Green
+pnpm test tests/feature/newFeature.test.ts # ✅ Green
+
+# 5. Discord Layer Integration (falls nötig)
+# Bot commands, event handlers
+
+# 6. Refactor & Polish
+pnpm test tests/feature/newFeature.test.ts # ✅ Still Green
+```
+
+#### 3. Quality Gates
+
+```bash
+# 7. Alle Tests laufen durch
+pnpm test --run
+
+# 8. Linting ohne Fehler
+pnpm lint
+
+# 9. Format Check
+pnpm format:check
+```
+
+### TDD Cycle (Red-Green-Refactor)
+
+1. **Red:** Feature Test schreiben → ausführen → fehlschlagen sehen
 2. **Green:** Minimalen Code schreiben um Test zu bestehen
 3. **Refactor:** Code verbessern ohne Tests zu brechen
-4. **Repeat:** Nächsten Test schreiben
+4. **Repeat:** Edge Cases als weitere Tests hinzufügen
 
 ### Code Review Checklist
 
+#### Architektur & Design
+
 - [ ] Business Logic in Core Layer (nicht Discord Layer)
+- [ ] Clean Architecture Layers respektiert
 - [ ] Typed Errors statt Strings
-- [ ] Feature Test für User Journey vorhanden
-- [ ] Keine Secrets oder Magic Numbers
+- [ ] Graceful Error Handling implementiert
+
+#### Database & Migrations
+
+- [ ] **Nur additive DB-Änderungen** (CREATE TABLE IF NOT EXISTS, ADD COLUMN)
+- [ ] **Keine destructive Operationen** (DROP, DELETE, ALTER TYPE)
+- [ ] Default-Werte für neue Spalten definiert
+- [ ] Graceful Fallbacks für fehlende Konfigurationen
+
+#### Testing
+
+- [ ] **Feature Test vor Implementation geschrieben**
+- [ ] User Journey vollständig getestet
+- [ ] Edge Cases abgedeckt (disabled features, missing data)
+- [ ] Keine Mocks für Datenbank (echte SQLite)
+
+#### Code Quality
+
 - [ ] Performance: Database Transactions für Multi-Step Operations
-- [ ] Code Quality: `pnpm lint` läuft ohne Fehler
-- [ ] Code Formatting: `pnpm format:check` zeigt keine Abweichungen
+- [ ] Keine Secrets oder Magic Numbers
+- [ ] TypeScript strict mode ohne Fehler
+- [ ] Linting (`pnpm lint`) läuft ohne Fehler
+- [ ] Formatting (`pnpm format:check`) korrekt
 
 ## 🚀 Deployment & Config
 
@@ -193,6 +409,9 @@ export const RATE_LIMIT_CONFIG = {
 - **Type Safety:** Nutze TypeScript's type system voll aus
 - **Real Dependencies:** Minimale Mocks in Tests
 - **Immutable Config:** Konfiguration in Code, nicht DB
+- **Test-First Development:** Feature Test vor Implementation
+- **Live-Safe Migrations:** Nur additive DB-Änderungen
+- **Graceful Degradation:** Features dürfen fehlschlagen ohne App-Crash
 
 ### Don'ts ❌
 
@@ -201,6 +420,9 @@ export const RATE_LIMIT_CONFIG = {
 - **Magic Strings:** Nutze Enums und Constants
 - **Business Logic in Discord Layer:** Halte es dünn
 - **Brittle Tests:** Teste Verhalten, nicht Implementation
+- **Destructive Migrations:** NIE bestehende Daten/Strukturen löschen
+- **Implementation-First:** Nie Code vor Tests schreiben
+- **Breaking Changes:** Rückwärtskompatibilität ist heilig
 
 ## 📊 Success Metrics
 

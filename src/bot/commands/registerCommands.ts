@@ -1,4 +1,5 @@
 import { REST, Routes, SlashCommandBuilder } from "discord.js";
+import { data as notificationChannelCommand } from "./setNotificationChannel";
 
 const commands = [
 	new SlashCommandBuilder()
@@ -26,21 +27,14 @@ const commands = [
 				.setName("set")
 				.setDescription("Setzt das Vorstellungs-Forum")
 				.addChannelOption(option =>
-					option
-						.setName("channel")
-						.setDescription("Das Forum für Vorstellungen")
-						.setRequired(true)
+					option.setName("channel").setDescription("Das Forum für Vorstellungen").setRequired(true)
 				)
 		)
 		.addSubcommand(subcommand =>
-			subcommand
-				.setName("remove")
-				.setDescription("Entfernt die Vorstellungs-Forum Konfiguration")
+			subcommand.setName("remove").setDescription("Entfernt die Vorstellungs-Forum Konfiguration")
 		)
 		.addSubcommand(subcommand =>
-			subcommand
-				.setName("status")
-				.setDescription("Zeigt den aktuellen Vorstellungs-Forum Status an")
+			subcommand.setName("status").setDescription("Zeigt den aktuellen Vorstellungs-Forum Status an")
 		),
 	new SlashCommandBuilder()
 		.setName("manage-ranks")
@@ -49,24 +43,12 @@ const commands = [
 			subcommand
 				.setName("add")
 				.setDescription("Fügt einen neuen Rang hinzu")
-				.addStringOption(option =>
-					option
-						.setName("name")
-						.setDescription("Name des Rangs")
-						.setRequired(true)
-				)
+				.addStringOption(option => option.setName("name").setDescription("Name des Rangs").setRequired(true))
 				.addIntegerOption(option =>
-					option
-						.setName("rp")
-						.setDescription("Benötigte RP für diesen Rang")
-						.setRequired(true)
-						.setMinValue(0)
+					option.setName("rp").setDescription("Benötigte RP für diesen Rang").setRequired(true).setMinValue(0)
 				)
 				.addRoleOption(option =>
-					option
-						.setName("role")
-						.setDescription("Discord-Rolle für diesen Rang")
-						.setRequired(true)
+					option.setName("role").setDescription("Discord-Rolle für diesen Rang").setRequired(true)
 				)
 		)
 		.addSubcommand(subcommand =>
@@ -74,22 +56,14 @@ const commands = [
 				.setName("remove")
 				.setDescription("Entfernt einen Rang")
 				.addStringOption(option =>
-					option
-						.setName("name")
-						.setDescription("Name des zu entfernenden Rangs")
-						.setRequired(true)
+					option.setName("name").setDescription("Name des zu entfernenden Rangs").setRequired(true)
 				)
 		)
+		.addSubcommand(subcommand => subcommand.setName("list").setDescription("Zeigt alle konfigurierten Ränge an"))
 		.addSubcommand(subcommand =>
-			subcommand
-				.setName("list")
-				.setDescription("Zeigt alle konfigurierten Ränge an")
-		)
-		.addSubcommand(subcommand =>
-			subcommand
-				.setName("sync")
-				.setDescription("Synchronisiert alle User-Ränge (kann dauern)")
+			subcommand.setName("sync").setDescription("Synchronisiert alle User-Ränge (kann dauern)")
 		),
+	notificationChannelCommand,
 ].map(command => command.toJSON());
 
 export async function registerSlashCommands() {

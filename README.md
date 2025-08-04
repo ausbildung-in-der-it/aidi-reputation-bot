@@ -21,6 +21,7 @@ A Discord bot for managing user reputation and ranks in Discord servers.
 ### Setup
 
 1. **Clone and configure:**
+
    ```bash
    git clone <repository>
    cd aidi-reputation-bot
@@ -28,12 +29,14 @@ A Discord bot for managing user reputation and ranks in Discord servers.
    ```
 
 2. **Edit `.env` file:**
+
    ```bash
    DISCORD_TOKEN=your_discord_bot_token_here
    DISCORD_CLIENT_ID=your_discord_client_id_here
    ```
 
 3. **Start the bot:**
+
    ```bash
    docker-compose up --build -d
    ```
@@ -79,13 +82,13 @@ docker-compose pull && docker-compose up --build -d
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DISCORD_TOKEN` | Discord bot token | Yes | - |
-| `DISCORD_CLIENT_ID` | Discord application client ID | Yes | - |
-| `DATABASE_URL` | SQLite database path | No | `./data.db` |
-| `NODE_ENV` | Environment mode | No | `production` |
-| `CONTAINER_NAME` | Docker container name | No | `aidi-reputation-bot` |
+| Variable            | Description                   | Required | Default               |
+| ------------------- | ----------------------------- | -------- | --------------------- |
+| `DISCORD_TOKEN`     | Discord bot token             | Yes      | -                     |
+| `DISCORD_CLIENT_ID` | Discord application client ID | Yes      | -                     |
+| `DATABASE_URL`      | SQLite database path          | No       | `./data.db`           |
+| `NODE_ENV`          | Environment mode              | No       | `production`          |
+| `CONTAINER_NAME`    | Docker container name         | No       | `aidi-reputation-bot` |
 
 ### Security Features
 
@@ -129,11 +132,13 @@ docker-compose exec bot du -sh /app/data/
 ### Common Issues
 
 1. **Bot not responding:**
+
    ```bash
    docker-compose logs bot
    ```
 
 2. **Database issues:**
+
    ```bash
    docker-compose exec bot ls -la /app/data/
    ```
@@ -153,8 +158,8 @@ Adjust resource limits in `docker-compose.yml`:
 deploy:
   resources:
     limits:
-      memory: 1G        # Increase for large servers
-      cpus: '2.0'       # Increase for high activity
+      memory: 1G # Increase for large servers
+      cpus: "2.0" # Increase for high activity
 ```
 
 ## Development

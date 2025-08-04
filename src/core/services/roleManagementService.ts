@@ -42,7 +42,7 @@ export const roleManagementService = {
 	 */
 	getUserEligibleRank: (guildId: string, userRp: number): ReputationRank | null => {
 		const ranks = roleManagementService.getRanksForGuild(guildId);
-		
+
 		// Find the highest rank the user qualifies for
 		let eligibleRank: ReputationRank | null = null;
 		for (const rank of ranks) {
@@ -52,7 +52,7 @@ export const roleManagementService = {
 				break; // Since ranks are sorted by required_rp ASC
 			}
 		}
-		
+
 		return eligibleRank;
 	},
 
@@ -101,7 +101,7 @@ export const roleManagementService = {
 	checkUserRankUpdate: (guildId: string, currentRp: number): RankUpdateResult => {
 		try {
 			const newRank = roleManagementService.getUserEligibleRank(guildId, currentRp);
-			
+
 			return {
 				success: true,
 				updated: true, // Let the caller determine if Discord roles need updating
@@ -128,11 +128,11 @@ export const roleManagementService = {
             WHERE guild_id = ? AND rank_name = ?
         `);
 		const result = stmt.get(guildId, rankName) as any;
-		
+
 		if (!result) {
 			return null;
 		}
-		
+
 		return {
 			guildId: result.guild_id,
 			rankName: result.rank_name,

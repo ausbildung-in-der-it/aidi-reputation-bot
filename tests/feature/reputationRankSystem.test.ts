@@ -8,7 +8,7 @@ import { generateGuildId, generateMessageId } from "../setup/testUtils";
 // Mock Discord Collection-like behavior
 const createMockCollection = (entries: [string, any][] = []) => {
 	const map = new Map(entries);
-	
+
 	const mockCollection = {
 		find: vi.fn().mockImplementation((predicate: (value: any, key: string) => boolean) => {
 			for (const [key, value] of map.entries()) {
@@ -25,12 +25,14 @@ const createMockCollection = (entries: [string, any][] = []) => {
 		has: (key: string) => map.has(key),
 		delete: (key: string) => map.delete(key),
 		clear: () => map.clear(),
-		get size() { return map.size; },
+		get size() {
+			return map.size;
+		},
 		entries: () => map.entries(),
 		keys: () => map.keys(),
 		values: () => map.values(),
 	};
-	
+
 	return mockCollection;
 };
 
@@ -38,7 +40,7 @@ const createMockCollection = (entries: [string, any][] = []) => {
 const createMockGuild = (guildId: string, customRoles: [string, any][] = []) => {
 	// Cache for member objects to ensure consistency
 	const memberCache = new Map();
-	
+
 	// Default roles plus any custom roles
 	const defaultRoles: [string, any][] = [
 		["role_neuling", { id: "role_neuling", name: "Neuling" }],
@@ -48,9 +50,9 @@ const createMockGuild = (guildId: string, customRoles: [string, any][] = []) => 
 		["role_novice", { id: "role_novice", name: "Novice" }],
 		["role_starter", { id: "role_starter", name: "Starter" }],
 	];
-	
+
 	const allRoles = [...defaultRoles, ...customRoles];
-	
+
 	const guild = {
 		id: guildId,
 		roles: {
@@ -73,15 +75,12 @@ const createMockGuild = (guildId: string, customRoles: [string, any][] = []) => 
 			}),
 		},
 	};
-	
+
 	return guild;
 };
 
 const createMockMember = (userId: string, currentRoles: string[] = []) => {
-	const roleEntries: [string, any][] = currentRoles.map(roleId => [
-		roleId, 
-		{ id: roleId, name: `Role_${roleId}` }
-	]);
+	const roleEntries: [string, any][] = currentRoles.map(roleId => [roleId, { id: roleId, name: `Role_${roleId}` }]);
 
 	return {
 		id: userId,
@@ -145,19 +144,19 @@ describe("Reputation Rank System", () => {
 			// Test different RP levels
 			expect(roleManagementService.getUserEligibleRank(guildId, 0)).toBeNull();
 			expect(roleManagementService.getUserEligibleRank(guildId, 24)).toBeNull();
-			
+
 			const rank25 = roleManagementService.getUserEligibleRank(guildId, 25);
 			expect(rank25?.rankName).toBe("Neuling");
-			
+
 			const rank49 = roleManagementService.getUserEligibleRank(guildId, 49);
 			expect(rank49?.rankName).toBe("Neuling");
-			
+
 			const rank50 = roleManagementService.getUserEligibleRank(guildId, 50);
 			expect(rank50?.rankName).toBe("Guide");
-			
+
 			const rank100 = roleManagementService.getUserEligibleRank(guildId, 100);
 			expect(rank100?.rankName).toBe("Expert");
-			
+
 			const rank200 = roleManagementService.getUserEligibleRank(guildId, 200);
 			expect(rank200?.rankName).toBe("Expert");
 		});
@@ -186,7 +185,7 @@ describe("Reputation Rank System", () => {
 
 			expect(guild1Ranks).toHaveLength(1);
 			expect(guild1Ranks[0].rankName).toBe("Neuling");
-			
+
 			expect(guild2Ranks).toHaveLength(1);
 			expect(guild2Ranks[0].rankName).toBe("Beginner");
 
@@ -215,7 +214,7 @@ describe("Reputation Rank System", () => {
 		it("should update user rank when they qualify for first rank", async () => {
 			// Setup ranks
 			roleManagementService.addRank(guildId, "Neuling", 25, "role_neuling");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			const userId = "user_123";
 
@@ -236,7 +235,7 @@ describe("Reputation Rank System", () => {
 			// Setup ranks
 			roleManagementService.addRank(guildId, "Neuling", 25, "role_neuling");
 			roleManagementService.addRank(guildId, "Guide", 50, "role_guide");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			const userId = "user_123";
 
@@ -260,7 +259,7 @@ describe("Reputation Rank System", () => {
 		it("should not update if user already has correct rank", async () => {
 			// Setup ranks
 			roleManagementService.addRank(guildId, "Guide", 50, "role_guide");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			const userId = "user_123";
 
@@ -284,7 +283,7 @@ describe("Reputation Rank System", () => {
 		it("should handle user with no qualifying ranks", async () => {
 			// Setup ranks
 			roleManagementService.addRank(guildId, "Neuling", 25, "role_neuling");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			const userId = "user_123";
 
@@ -353,7 +352,7 @@ describe("Reputation Rank System", () => {
 			const userId = "user_progression";
 
 			// Test progression: 0 → 25 → 50 → 100 → 200 RP
-			
+
 			// 25 RP: Should get Neuling
 			let result = await discordRoleService.updateUserRank(mockGuild, userId, 25);
 			expect(result.newRole).toBe("Neuling");
@@ -390,7 +389,7 @@ describe("Reputation Rank System", () => {
 		it("should handle missing Discord roles gracefully", async () => {
 			// Setup rank with non-existent role
 			roleManagementService.addRank(guildId, "MissingRole", 25, "nonexistent_role");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			const userId = "user_123";
 
@@ -402,7 +401,7 @@ describe("Reputation Rank System", () => {
 
 		it("should handle user not in guild anymore", async () => {
 			roleManagementService.addRank(guildId, "Neuling", 25, "role_neuling");
-			
+
 			const mockGuild = createMockGuild(guildId) as any;
 			mockGuild.members.fetch.mockRejectedValue(new Error("User not found"));
 

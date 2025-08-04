@@ -1,6 +1,8 @@
 import { MessageReaction, PartialMessageReaction, PartialUser, User } from "discord.js";
 import { addReputationForReaction } from "@/core/usecases/addReputationForReaction";
 import { UserInfo } from "@/core/types/UserInfo";
+import { getDiscordNotificationService } from "@/bot/services/discordNotificationService";
+import { discordRoleService } from "@/bot/services/discordRoleService";
 
 async function createUserInfo(userId: string, guild: any): Promise<UserInfo | null> {
 	try {
@@ -52,13 +54,49 @@ export async function onReactionAdd(reaction: MessageReaction | PartialMessageRe
 		}
 
 		// Delegate all business logic to core layer
-		await addReputationForReaction({
+		const result = await addReputationForReaction({
 			guildId,
 			messageId,
 			recipient,
 			reactor,
 			emoji,
 		});
+
+		// Send notification if reputation was successfully awarded
+		if (result.success && result.points && result.points > 0) {
+			const notificationService = getDiscordNotificationService();
+			if (notificationService) {
+				const channelName = message.channel && "name" in message.channel ? message.channel.name : undefined;
+
+				await notificationService.sendNotification({
+					type: "trophy_given",
+					guildId,
+					userId: reactor.id,
+					userName: reactor.displayName,
+					points: result.points,
+					context: {
+						channelName,
+						recipientName: recipient.displayName,
+						recipientId: recipient.id,
+						sourceType: "reaction",
+					},
+				});
+			}
+
+			// Check for rank updates
+			try {
+				const currentRp = result.newTotal || 0;
+				const updatedRoles = await discordRoleService.updateUserRoles(message.guild, recipient.id, currentRp);
+
+				if (updatedRoles && updatedRoles.length > 0) {
+					console.log(
+						`Updated roles for ${recipient.username} (${currentRp} RP): ${updatedRoles.join(", ")}`
+					);
+				}
+			} catch (error) {
+				console.error("Error updating user roles after reputation award:", error);
+			}
+		}
 	} catch (err) {
 		console.error("Fehler in onReactionAdd:", err);
 	}
