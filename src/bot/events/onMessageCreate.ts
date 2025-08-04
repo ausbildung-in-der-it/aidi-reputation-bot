@@ -1,4 +1,4 @@
-import { Message, PartialMessage } from "discord.js";
+import { Message, PartialMessage, MessageType } from "discord.js";
 import { awardDailyBonus } from "@/core/usecases/awardDailyBonus";
 import { awardIntroductionBonus } from "@/core/usecases/awardIntroductionBonus";
 import { UserInfo } from "@/core/types/UserInfo";
@@ -34,6 +34,22 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 
 		// Basic validation of Discord data
 		if (!guildId || !authorId || !message.guild || !message.author) {
+			return;
+		}
+
+		// Skip system messages (join/leave/etc.)
+		if (message.system || message.author.system) {
+			return;
+		}
+
+		// Skip bot messages
+		if (message.author.bot) {
+			return;
+		}
+
+		// Only process normal messages and replies
+		if (message.type !== MessageType.Default && message.type !== MessageType.Reply) {
+			console.debug(`Skipping message type ${message.type} from ${message.author.username} in guild ${guildId}`);
 			return;
 		}
 
