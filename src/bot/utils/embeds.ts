@@ -82,7 +82,9 @@ export function createRateLimitStatusEmbed(user: User, status: UserRateLimitStat
 		: "🎁 Noch verfügbar";
 
 	// Introduction post status
-	const introPostStatus = `📝 Einmalig ${status.introductionPost.bonus} RP (immer verfügbar)`;
+	const introPostStatus = status.introductionPost.alreadyReceived
+		? "✅ Bereits erhalten"
+		: `📝 Verfügbar (${status.introductionPost.bonus} RP)`;
 
 	// Introduction reply status
 	const replyStatus = status.introductionReplies.remaining > 0

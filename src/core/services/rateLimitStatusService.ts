@@ -1,6 +1,7 @@
 import { rateLimitService } from "./rateLimitService";
 import { dailyBonusService } from "./dailyBonusService";
 import { introductionReplyService } from "./introductionReplyService";
+import { reputationService } from "./reputationService";
 import { RATE_LIMIT_CONFIG, INTRODUCTION_CONFIG } from "@/config/reputation";
 
 export interface TrophyLimitStatus {
@@ -16,6 +17,7 @@ export interface DailyBonusStatus {
 
 export interface IntroductionPostStatus {
 	available: boolean;
+	alreadyReceived: boolean;
 	bonus: number;
 }
 
@@ -49,9 +51,14 @@ export const rateLimitStatusService = {
 			available: bonusCheck.canReceive,
 		};
 
-		// Get introduction post status (always available, one-time bonus)
+		// Get introduction post status - check if user already received the bonus
+		const alreadyReceivedIntroBonus = reputationService.hasUserReceivedBonus(guildId, userId, [
+			"introduction_post",
+			"forum_post",
+		]);
 		const introductionPostStatus: IntroductionPostStatus = {
-			available: true,
+			available: !alreadyReceivedIntroBonus,
+			alreadyReceived: alreadyReceivedIntroBonus,
 			bonus: INTRODUCTION_CONFIG.postBonus,
 		};
 
