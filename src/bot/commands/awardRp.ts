@@ -1,12 +1,12 @@
 import { createAdminAwardEmbed } from "@/bot/utils/embeds";
 import { manualReputationService } from "@/core/services/manualReputationService";
-import { ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
+import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 
 export async function handleAwardRpCommand(interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
 		await interaction.reply({
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -15,7 +15,7 @@ export async function handleAwardRpCommand(interaction: ChatInputCommandInteract
 	if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
 		await interaction.reply({
 			content: "Du benötigst Administrator-Berechtigung um RP zu vergeben.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -30,7 +30,7 @@ export async function handleAwardRpCommand(interaction: ChatInputCommandInteract
 	if (targetUser.id === adminId) {
 		await interaction.reply({
 			content: "Du kannst dir nicht selbst RP vergeben.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -39,7 +39,7 @@ export async function handleAwardRpCommand(interaction: ChatInputCommandInteract
 	if (targetUser.bot) {
 		await interaction.reply({
 			content: "Du kannst Bots keine RP vergeben.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -56,7 +56,7 @@ export async function handleAwardRpCommand(interaction: ChatInputCommandInteract
 		if (!result.success) {
 			await interaction.reply({
 				content: `Fehler beim Vergeben von RP: ${result.error}`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -74,7 +74,7 @@ export async function handleAwardRpCommand(interaction: ChatInputCommandInteract
 		console.error("Error in award-rp command:", error);
 		await interaction.reply({
 			content: "Es ist ein Fehler beim Vergeben der RP aufgetreten.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }

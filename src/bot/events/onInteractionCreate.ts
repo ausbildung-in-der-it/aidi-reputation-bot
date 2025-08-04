@@ -1,4 +1,4 @@
-import { Interaction } from "discord.js";
+import { Interaction, MessageFlags } from "discord.js";
 import { handleReputationCommand } from "@/bot/commands/reputation";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroductionChannel";
@@ -47,10 +47,20 @@ export async function onInteractionCreate(interaction: Interaction) {
 
 		const errorMessage = "Es ist ein unerwarteter Fehler aufgetreten.";
 
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: errorMessage, ephemeral: true });
-		} else {
-			await interaction.reply({ content: errorMessage, ephemeral: true });
+		try {
+			if (interaction.deferred) {
+				// If deferred, use editReply to update the deferred response
+				await interaction.editReply({ content: errorMessage });
+			} else if (interaction.replied) {
+				// If already replied, use followUp for additional message
+				await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
+			} else {
+				// If not responded yet, use reply
+				await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
+			}
+		} catch (responseError) {
+			console.error("Failed to respond to interaction:", responseError);
+			// If we can't respond, the interaction has likely expired or been acknowledged elsewhere
 		}
 	}
 }

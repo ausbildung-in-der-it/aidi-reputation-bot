@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { MessageFlags } from "discord.js";
 import { handleReputationCommand } from "@/bot/commands/reputation";
 import { reputationService } from "@/core/services/reputationService";
 import { db } from "@/db/sqlite";
@@ -262,7 +263,7 @@ describe("User Checks Reputation", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Dieser Command kann nur in einem Server verwendet werden.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 	});

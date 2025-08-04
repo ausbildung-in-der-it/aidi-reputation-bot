@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { reputationService } from "@/core/services/reputationService";
 import { createLeaderboardEmbed } from "@/bot/utils/embeds";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
@@ -7,7 +7,7 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
 	if (!interaction.guild) {
 		await interaction.reply({
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -16,6 +16,9 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
 	const limit = Math.min(requestedLimit, 25); // Cap at 25 users max
 	const guildId = interaction.guild.id;
 	const guildName = interaction.guild.name;
+
+	// Defer reply since this command might take a while (member fetching)
+	await interaction.deferReply();
 
 	try {
 		const excludedRoleIds = leaderboardExclusionService.getExcludedRoleIds(guildId);
@@ -50,12 +53,11 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
 		}
 
 		const embed = createLeaderboardEmbed(leaderboard, guildName);
-		await interaction.reply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [embed] });
 	} catch (error) {
 		console.error("Error in leaderboard command:", error);
-		await interaction.reply({
+		await interaction.editReply({
 			content: "Es ist ein Fehler beim Abrufen des Leaderboards aufgetreten.",
-			ephemeral: true,
 		});
 	}
 }

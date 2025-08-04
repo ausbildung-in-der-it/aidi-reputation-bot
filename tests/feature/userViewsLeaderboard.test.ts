@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { MessageFlags } from "discord.js";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { reputationService } from "@/core/services/reputationService";
 import { db } from "@/db/sqlite";
@@ -12,6 +13,8 @@ const createMockInteraction = (userId: string, guildId: string, guildName: strin
 		getInteger: (name: string) => (name === "limit" ? limit : null),
 	},
 	reply: vi.fn(),
+	deferReply: vi.fn(),
+	editReply: vi.fn(),
 	replied: false,
 	deferred: false,
 });
@@ -84,7 +87,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				embeds: [
 					expect.objectContaining({
 						data: expect.objectContaining({
@@ -133,7 +136,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				embeds: [
 					expect.objectContaining({
 						data: expect.objectContaining({
@@ -151,7 +154,7 @@ describe("User Views Leaderboard", () => {
 			});
 
 			// Verify rankings are sorted correctly (charlie=7, alice=5, bob=3, diana=1)
-			const call = mockInteraction.reply.mock.calls[0][0];
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const rankingsValue = call.embeds[0].data.fields[0].value;
 
 			expect(rankingsValue).toContain("🥇 **1.** <@user_charlie> - **7** Punkte");
@@ -190,7 +193,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				embeds: [
 					expect.objectContaining({
 						data: expect.objectContaining({
@@ -201,7 +204,7 @@ describe("User Views Leaderboard", () => {
 			});
 
 			// Should only show top 3
-			const call = mockInteraction.reply.mock.calls[0][0];
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const rankingsValue = call.embeds[0].data.fields[0].value;
 
 			expect(rankingsValue).toContain("user_1");
@@ -232,7 +235,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				embeds: [
 					expect.objectContaining({
 						data: expect.objectContaining({
@@ -248,7 +251,7 @@ describe("User Views Leaderboard", () => {
 			});
 
 			// All users should have same points but different positions
-			const call = mockInteraction.reply.mock.calls[0][0];
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const rankingsValue = call.embeds[0].data.fields[0].value;
 
 			expect(rankingsValue).toContain("🥇 **1.**");
@@ -277,7 +280,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				embeds: [
 					expect.objectContaining({
 						data: expect.objectContaining({
@@ -319,7 +322,7 @@ describe("User Views Leaderboard", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			const call = mockInteraction.reply.mock.calls[0][0];
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const rankingsValue = call.embeds[0].data.fields[0].value;
 
 			// Should only show guild1 user
@@ -336,13 +339,15 @@ describe("User Views Leaderboard", () => {
 				user: { id: userId },
 				options: { getInteger: () => null },
 				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
 			};
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Dieser Command kann nur in einem Server verwendet werden.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 	});

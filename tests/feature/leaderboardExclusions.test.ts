@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { MessageFlags } from "discord.js";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
@@ -39,6 +40,8 @@ const createMockInteraction = (
 		getInteger: (name: string) => options.limit || null,
 	},
 	reply: vi.fn(),
+	deferReply: vi.fn(),
+	editReply: vi.fn(),
 	replied: false,
 	deferred: false,
 });
@@ -93,7 +96,7 @@ describe("Leaderboard Exclusions", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("wurde erfolgreich vom Leaderboard ausgeschlossen"),
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			
 			const isExcluded = leaderboardExclusionService.isRoleExcluded(guildId, testRole.id);
@@ -116,7 +119,7 @@ describe("Leaderboard Exclusions", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("wurde erfolgreich entfernt"),
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			
 			const isExcluded = leaderboardExclusionService.isRoleExcluded(guildId, testRole.id);
@@ -137,7 +140,7 @@ describe("Leaderboard Exclusions", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Vom Leaderboard ausgeschlossene Rollen"),
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 
@@ -155,7 +158,7 @@ describe("Leaderboard Exclusions", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Administrator-Berechtigung"),
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 	});
@@ -217,8 +220,8 @@ describe("Leaderboard Exclusions", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalled();
-			const call = mockInteraction.reply.mock.calls[0][0];
+			expect(mockInteraction.editReply).toHaveBeenCalled();
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const embed = call.embeds[0];
 			
 			// Should not contain user with excluded role
@@ -241,8 +244,8 @@ describe("Leaderboard Exclusions", () => {
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalled();
-			const call = mockInteraction.reply.mock.calls[0][0];
+			expect(mockInteraction.editReply).toHaveBeenCalled();
+			const call = mockInteraction.editReply.mock.calls[0][0];
 			const embed = call.embeds[0];
 			
 			expect(embed.data.fields[0].value).toContain(regularUserId);

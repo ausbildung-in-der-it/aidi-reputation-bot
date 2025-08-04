@@ -1,13 +1,13 @@
 import { discordRoleService } from "@/bot/services/discordRoleService";
 import { roleManagementService } from "@/core/services/roleManagementService";
-import { ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
+import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 
 export async function handleManageRanksCommand(interaction: ChatInputCommandInteraction) {
 	// Check if command is run in a guild
 	if (!interaction.guild) {
 		await interaction.reply({
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -16,7 +16,7 @@ export async function handleManageRanksCommand(interaction: ChatInputCommandInte
 	if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
 		await interaction.reply({
 			content: "Du benötigst Administrator-Berechtigung um Ränge zu verwalten.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -38,7 +38,7 @@ export async function handleManageRanksCommand(interaction: ChatInputCommandInte
 		console.error("Error in manage-ranks command:", error);
 		await interaction.reply({
 			content: "Es ist ein Fehler beim Verwalten der Ränge aufgetreten.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }
@@ -52,7 +52,7 @@ async function handleAddRank(interaction: ChatInputCommandInteraction, guildId: 
 	if (requiredRp < 0) {
 		await interaction.reply({
 			content: "RP-Anforderung muss mindestens 0 sein.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -61,7 +61,7 @@ async function handleAddRank(interaction: ChatInputCommandInteraction, guildId: 
 	if (roleManagementService.rankExists(guildId, rankName)) {
 		await interaction.reply({
 			content: `Ein Rang mit dem Namen "${rankName}" existiert bereits. Verwende denselben Command um ihn zu überschreiben.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -71,7 +71,7 @@ async function handleAddRank(interaction: ChatInputCommandInteraction, guildId: 
 	if (!success) {
 		await interaction.reply({
 			content: `Fehler beim Hinzufügen des Rangs "${rankName}".`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -85,7 +85,7 @@ async function handleAddRank(interaction: ChatInputCommandInteraction, guildId: 
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
 
@@ -96,7 +96,7 @@ async function handleRemoveRank(interaction: ChatInputCommandInteraction, guildI
 	if (!roleManagementService.rankExists(guildId, rankName)) {
 		await interaction.reply({
 			content: `Ein Rang mit dem Namen "${rankName}" existiert nicht.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -107,7 +107,7 @@ async function handleRemoveRank(interaction: ChatInputCommandInteraction, guildI
 	if (!success) {
 		await interaction.reply({
 			content: `Fehler beim Entfernen des Rangs "${rankName}".`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -117,7 +117,7 @@ async function handleRemoveRank(interaction: ChatInputCommandInteraction, guildI
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
 
@@ -127,7 +127,7 @@ async function handleListRanks(interaction: ChatInputCommandInteraction, guildId
 	if (ranks.length === 0) {
 		await interaction.reply({
 			content: "❌ Keine Ränge konfiguriert.\n\nVerwende `/manage-ranks add` um einen Rang hinzuzufügen.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -153,12 +153,12 @@ async function handleListRanks(interaction: ChatInputCommandInteraction, guildId
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
 
 async function handleSyncRanks(interaction: ChatInputCommandInteraction) {
-	await interaction.deferReply({ ephemeral: true });
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 	try {
 		const result = await discordRoleService.syncAllUserRanks(interaction.guild!);

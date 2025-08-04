@@ -36,6 +36,8 @@ const createLeaderboardMockInteraction = (userId: string, guildId: string, guild
 		getInteger: (name: string) => (name === "limit" ? limit : null),
 	},
 	reply: vi.fn(),
+	deferReply: vi.fn(),
+	editReply: vi.fn(),
 });
 
 // Mock embed functions
@@ -346,7 +348,7 @@ describe("Cross-Guild Isolation", () => {
 			const guild1Interaction = createLeaderboardMockInteraction(checkingUser.id, guild1Id, "Guild 1");
 			await handleLeaderboardCommand(guild1Interaction as any);
 
-			const guild1Call = guild1Interaction.reply.mock.calls[0][0];
+			const guild1Call = guild1Interaction.editReply.mock.calls[0][0];
 			const guild1Rankings = guild1Call.embeds[0].data.fields[0].value;
 
 			expect(guild1Rankings).toContain("g1_alice");
@@ -358,7 +360,7 @@ describe("Cross-Guild Isolation", () => {
 			const guild2Interaction = createLeaderboardMockInteraction(checkingUser.id, guild2Id, "Guild 2");
 			await handleLeaderboardCommand(guild2Interaction as any);
 
-			const guild2Call = guild2Interaction.reply.mock.calls[0][0];
+			const guild2Call = guild2Interaction.editReply.mock.calls[0][0];
 			const guild2Rankings = guild2Call.embeds[0].data.fields[0].value;
 
 			expect(guild2Rankings).toContain("g2_charlie");
@@ -396,7 +398,7 @@ describe("Cross-Guild Isolation", () => {
 			const guild1Interaction = createLeaderboardMockInteraction(checkingUser.id, guild1Id, "Guild 1");
 			await handleLeaderboardCommand(guild1Interaction as any);
 
-			const guild1Call = guild1Interaction.reply.mock.calls[0][0];
+			const guild1Call = guild1Interaction.editReply.mock.calls[0][0];
 			const guild1Rankings = guild1Call.embeds[0].data.fields[0].value;
 			expect(guild1Rankings).toContain(`<@${sameUserId}> - **1** Punkte`);
 
@@ -404,7 +406,7 @@ describe("Cross-Guild Isolation", () => {
 			const guild2Interaction = createLeaderboardMockInteraction(checkingUser.id, guild2Id, "Guild 2");
 			await handleLeaderboardCommand(guild2Interaction as any);
 
-			const guild2Call = guild2Interaction.reply.mock.calls[0][0];
+			const guild2Call = guild2Interaction.editReply.mock.calls[0][0];
 			const guild2Rankings = guild2Call.embeds[0].data.fields[0].value;
 			expect(guild2Rankings).toContain(`<@${sameUserId}> - **3** Punkte`);
 		});

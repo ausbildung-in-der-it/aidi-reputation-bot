@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { MessageFlags } from "discord.js";
 import { manualReputationService } from "@/core/services/manualReputationService";
 import { reputationService } from "@/core/services/reputationService";
 import { handleAwardRpCommand } from "@/bot/commands/awardRp";
@@ -164,7 +165,7 @@ describe("Admin RP Award System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Du benötigst Administrator-Berechtigung um RP zu vergeben.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 
 			// Verify no RP was awarded
@@ -193,7 +194,7 @@ describe("Admin RP Award System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Du kannst dir nicht selbst RP vergeben.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 
@@ -219,7 +220,7 @@ describe("Admin RP Award System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Du kannst Bots keine RP vergeben.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 
@@ -242,7 +243,7 @@ describe("Admin RP Award System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Dieser Command kann nur in einem Server verwendet werden.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 

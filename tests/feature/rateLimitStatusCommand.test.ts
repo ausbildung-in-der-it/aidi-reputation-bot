@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { MessageFlags } from "discord.js";
 import { rateLimitStatusService } from "@/core/services/rateLimitStatusService";
 import { rateLimitService } from "@/core/services/rateLimitService";
 import { dailyBonusService } from "@/core/services/dailyBonusService";
@@ -219,7 +220,7 @@ describe("Rate Limit Status Command", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Du benötigst Administrator-Berechtigung um die Rate Limits anderer User anzuzeigen.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 
@@ -262,7 +263,7 @@ describe("Rate Limit Status Command", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: "Dieser Command kann nur in einem Server verwendet werden.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		});
 	});

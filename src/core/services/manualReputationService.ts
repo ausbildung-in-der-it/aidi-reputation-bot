@@ -63,7 +63,7 @@ export const manualReputationService = {
 		}
 	},
 
-	getManualAwardHistory: (guildId: string, limit: number = 50) => {
+	getManualAwardHistory: (_guildId: string, _limit: number = 50) => {
 		// This would be useful for admin audit trails
 		// Implementation could be added later if needed
 		return [];

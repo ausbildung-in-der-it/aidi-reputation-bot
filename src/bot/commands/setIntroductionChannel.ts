@@ -1,13 +1,13 @@
 import { introductionChannelService } from "@/core/services/introductionChannelService";
 import { configureIntroductionChannel, removeIntroductionChannel } from "@/core/usecases/configureIntroductionChannel";
-import { ChannelType, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
+import { ChannelType, ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 
 export async function handleSetIntroductionChannelCommand(interaction: ChatInputCommandInteraction) {
 	// Check if command is run in a guild
 	if (!interaction.guild) {
 		await interaction.reply({
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -16,7 +16,7 @@ export async function handleSetIntroductionChannelCommand(interaction: ChatInput
 	if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
 		await interaction.reply({
 			content: "Du benötigst Administrator-Berechtigung um den Vorstellungs-Channel zu konfigurieren.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -37,7 +37,7 @@ export async function handleSetIntroductionChannelCommand(interaction: ChatInput
 		console.error("Error in set-introduction-channel command:", error);
 		await interaction.reply({
 			content: "Es ist ein Fehler beim Konfigurieren des Vorstellungs-Channels aufgetreten.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }
@@ -49,7 +49,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	if (channel.type !== ChannelType.GuildForum) {
 		await interaction.reply({
 			content: "Der Vorstellungs-Channel muss ein Forum-Channel sein.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -63,7 +63,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	if (!result.success) {
 		await interaction.reply({
 			content: `Fehler beim Konfigurieren des Vorstellungs-Channels: ${result.error}`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -79,7 +79,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
 
@@ -89,7 +89,7 @@ async function handleRemoveChannel(interaction: ChatInputCommandInteraction, gui
 	if (!result.success) {
 		await interaction.reply({
 			content: `Fehler beim Entfernen der Vorstellungs-Channel Konfiguration: ${result.error}`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -97,7 +97,7 @@ async function handleRemoveChannel(interaction: ChatInputCommandInteraction, gui
 	if (!result.wasConfigured) {
 		await interaction.reply({
 			content: "Es war kein Vorstellungs-Channel konfiguriert.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -109,7 +109,7 @@ async function handleRemoveChannel(interaction: ChatInputCommandInteraction, gui
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
 
@@ -120,7 +120,7 @@ async function handleShowStatus(interaction: ChatInputCommandInteraction, guildI
 		await interaction.reply({
 			content:
 				"❌ Kein Vorstellungs-Forum konfiguriert.\n\nVerwende `/set-introduction-channel set` um ein Forum zu konfigurieren.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -136,6 +136,6 @@ async function handleShowStatus(interaction: ChatInputCommandInteraction, guildI
 
 	await interaction.reply({
 		content: message,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }

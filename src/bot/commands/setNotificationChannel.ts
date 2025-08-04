@@ -4,6 +4,7 @@ import {
 	PermissionFlagsBits,
 	ChannelType,
 	TextChannel,
+	MessageFlags,
 } from "discord.js";
 import {
 	configureNotificationChannel,
@@ -47,7 +48,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
 		await interaction.reply({
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -77,7 +78,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			default:
 				await interaction.reply({
 					content: "Unbekannter Subcommand.",
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 		}
 	} catch (error) {
@@ -86,7 +87,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		if (!interaction.replied && !interaction.deferred) {
 			await interaction.reply({
 				content: "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 	}
@@ -99,7 +100,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	if (channel.type !== ChannelType.GuildText) {
 		await interaction.reply({
 			content: "Bitte wähle einen Text-Channel aus.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -111,7 +112,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	if (!botMember) {
 		await interaction.reply({
 			content: "Fehler beim Überprüfen der Bot-Berechtigungen.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -120,7 +121,7 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	if (!permissions?.has(PermissionFlagsBits.SendMessages) || !permissions?.has(PermissionFlagsBits.ViewChannel)) {
 		await interaction.reply({
 			content: `Ich habe keine Berechtigung, Nachrichten in ${channel} zu senden. Bitte überprüfe meine Channel-Berechtigungen.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -171,7 +172,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction, guildId: s
 		await interaction.reply({
 			content:
 				"❌ Kein Notification-Channel konfiguriert.\n\nVerwende `/notification-channel set` um einen Channel zu konfigurieren.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return;
 	}
@@ -190,6 +191,6 @@ async function handleStatus(interaction: ChatInputCommandInteraction, guildId: s
 			`**Channel:** <#${status.channelId}>\n` +
 			`**Konfiguriert am:** ${configuredDate}\n` +
 			`**Konfiguriert von:** <@${status.configuredBy}>`,
-		ephemeral: true,
+		flags: MessageFlags.Ephemeral,
 	});
 }
