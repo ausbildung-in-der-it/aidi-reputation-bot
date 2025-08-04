@@ -70,6 +70,27 @@ const commands = [
 			option.setName("user").setDescription("Der User dessen Rate Limits angezeigt werden sollen").setRequired(false)
 		),
 	new SlashCommandBuilder()
+		.setName("award-rp")
+		.setDescription("Vergebe oder entziehe RP als Administrator")
+		.addUserOption(option =>
+			option.setName("user").setDescription("Der User dem RP vergeben/entzogen werden soll").setRequired(true)
+		)
+		.addIntegerOption(option =>
+			option
+				.setName("amount")
+				.setDescription("RP Betrag (positiv zum Vergeben, negativ zum Entziehen)")
+				.setRequired(true)
+				.setMinValue(-1000)
+				.setMaxValue(1000)
+		)
+		.addStringOption(option =>
+			option
+				.setName("reason")
+				.setDescription("Grund für die RP Vergabe/Entziehung (optional)")
+				.setRequired(false)
+				.setMaxLength(200)
+		),
+	new SlashCommandBuilder()
 		.setName("leaderboard-exclusions")
 		.setDescription("Verwaltet Leaderboard-Ausschlüsse für Rollen (Admin-only)")
 		.addSubcommand(subcommand =>

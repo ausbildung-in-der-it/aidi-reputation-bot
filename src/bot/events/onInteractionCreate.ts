@@ -5,6 +5,7 @@ import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroduct
 import { handleManageRanksCommand } from "@/bot/commands/manageRanks";
 import { execute as handleNotificationChannelCommand } from "@/bot/commands/setNotificationChannel";
 import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
+import { handleAwardRpCommand } from "@/bot/commands/awardRp";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
 
 export async function onInteractionCreate(interaction: Interaction) {
@@ -31,6 +32,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "rate-limits":
 				await handleRateLimitsCommand(interaction);
+				break;
+			case "award-rp":
+				await handleAwardRpCommand(interaction);
 				break;
 			case "leaderboard-exclusions":
 				await handleLeaderboardExclusionsCommand(interaction);

@@ -116,3 +116,57 @@ export function createRateLimitStatusEmbed(user: User, status: UserRateLimitStat
 
 	return embed;
 }
+
+export function createAdminAwardEmbed(data: {
+	targetUser: { id: string; displayName?: string | null; username: string };
+	admin: { id: string; displayName?: string | null; username: string };
+	amount: number;
+	reason?: string;
+	newTotal: number;
+}): EmbedBuilder {
+	const { targetUser, admin, amount, reason, newTotal } = data;
+	
+	const embed = new EmbedBuilder()
+		.setColor(amount > 0 ? 0x00ff00 : 0xff6b6b) // Green for positive, red for negative
+		.setTitle("⚡ Admin RP Award")
+		.setTimestamp()
+		.setFooter({ text: "AIDI Reputation Bot" });
+
+	const amountText = amount > 0 ? `+${amount}` : `${amount}`;
+	const actionText = amount > 0 ? "verliehen" : "abgezogen";
+
+	embed.addFields([
+		{
+			name: "👤 Empfänger",
+			value: `${targetUser.displayName || targetUser.username} (<@${targetUser.id}>)`,
+			inline: true,
+		},
+		{
+			name: "👨‍💼 Admin",
+			value: `${admin.displayName || admin.username}`,
+			inline: true,
+		},
+		{
+			name: "💰 Betrag",
+			value: `${amountText} RP ${actionText}`,
+			inline: true,
+		},
+		{
+			name: "📊 Neue Gesamtsumme",
+			value: `${newTotal} RP`,
+			inline: true,
+		},
+	]);
+
+	if (reason) {
+		embed.addFields([
+			{
+				name: "📝 Grund",
+				value: reason,
+				inline: false,
+			},
+		]);
+	}
+
+	return embed;
+}
