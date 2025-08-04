@@ -1,6 +1,6 @@
-import { ChatInputCommandInteraction, PermissionFlagsBits, ChannelType } from "discord.js";
-import { configureIntroductionChannel, removeIntroductionChannel } from "@/core/usecases/configureIntroductionChannel";
 import { introductionChannelService } from "@/core/services/introductionChannelService";
+import { configureIntroductionChannel, removeIntroductionChannel } from "@/core/usecases/configureIntroductionChannel";
+import { ChannelType, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 
 export async function handleSetIntroductionChannelCommand(interaction: ChatInputCommandInteraction) {
 	// Check if command is run in a guild

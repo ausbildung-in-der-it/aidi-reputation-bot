@@ -1,4 +1,5 @@
 import { EmbedBuilder, User } from "discord.js";
+import { UserRateLimitStatus } from "@/core/services/rateLimitStatusService";
 
 export function createReputationEmbed(user: User, reputation: number): EmbedBuilder {
 	return new EmbedBuilder()
@@ -54,6 +55,59 @@ export function createLeaderboardEmbed(
 		{
 			name: "Rankings",
 			value: rankings,
+			inline: false,
+		},
+	]);
+
+	return embed;
+}
+
+export function createRateLimitStatusEmbed(user: User, status: UserRateLimitStatus): EmbedBuilder {
+	const embed = new EmbedBuilder()
+		.setColor(0x3498db)
+		.setTitle("📊 Rate Limits Status")
+		.setThumbnail(user.displayAvatarURL())
+		.setDescription(`Rate Limit Übersicht für ${user.displayName || user.username}`)
+		.setTimestamp()
+		.setFooter({ text: "AIDI Reputation Bot" });
+
+	// Trophy limits
+	const trophyStatus = status.trophies.remaining > 0 
+		? `✅ ${status.trophies.used}/${status.trophies.limit} verwendet (${status.trophies.remaining} verfügbar)`
+		: `❌ ${status.trophies.used}/${status.trophies.limit} verwendet (Limit erreicht)`;
+
+	// Daily bonus status
+	const bonusStatus = status.dailyBonus.received 
+		? "✅ Heute bereits erhalten" 
+		: "🎁 Noch verfügbar";
+
+	// Introduction post status
+	const introPostStatus = `📝 Einmalig ${status.introductionPost.bonus} RP (immer verfügbar)`;
+
+	// Introduction reply status
+	const replyStatus = status.introductionReplies.remaining > 0
+		? `✅ ${status.introductionReplies.used}/${status.introductionReplies.limit} verwendet (${status.introductionReplies.remaining} verfügbar)`
+		: `❌ ${status.introductionReplies.used}/${status.introductionReplies.limit} verwendet (Limit erreicht)`;
+
+	embed.addFields([
+		{
+			name: "🏆 Trophäen (24h)",
+			value: trophyStatus,
+			inline: false,
+		},
+		{
+			name: "🎁 Daily Bonus",
+			value: bonusStatus,
+			inline: true,
+		},
+		{
+			name: "📝 Introduction Post",
+			value: introPostStatus,
+			inline: true,
+		},
+		{
+			name: "💬 Introduction Replies",
+			value: replyStatus,
 			inline: false,
 		},
 	]);

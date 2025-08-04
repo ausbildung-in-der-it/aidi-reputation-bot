@@ -4,6 +4,7 @@ import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroductionChannel";
 import { handleManageRanksCommand } from "@/bot/commands/manageRanks";
 import { execute as handleNotificationChannelCommand } from "@/bot/commands/setNotificationChannel";
+import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
 
 export async function onInteractionCreate(interaction: Interaction) {
 	if (!interaction.isChatInputCommand()) {
@@ -26,6 +27,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "notification-channel":
 				await handleNotificationChannelCommand(interaction);
+				break;
+			case "rate-limits":
+				await handleRateLimitsCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);

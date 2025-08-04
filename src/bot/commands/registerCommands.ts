@@ -63,6 +63,12 @@ const commands = [
 		.addSubcommand(subcommand =>
 			subcommand.setName("sync").setDescription("Synchronisiert alle User-Ränge (kann dauern)")
 		),
+	new SlashCommandBuilder()
+		.setName("rate-limits")
+		.setDescription("Zeigt die aktuellen Rate Limits eines Users an")
+		.addUserOption(option =>
+			option.setName("user").setDescription("Der User dessen Rate Limits angezeigt werden sollen").setRequired(false)
+		),
 	notificationChannelCommand,
 ].map(command => command.toJSON());
 
