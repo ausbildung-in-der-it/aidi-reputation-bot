@@ -1,19 +1,22 @@
 import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
+import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
 
 export async function handleLeaderboardExclusionsCommand(interaction: ChatInputCommandInteraction) {
+	const isDeferred = await safeDeferReply(interaction, true);
+	
 	if (!interaction.guild) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
 
 	if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Du benötigst Administrator-Berechtigung um Leaderboard-Ausschlüsse zu verwalten.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -31,9 +34,9 @@ export async function handleLeaderboardExclusionsCommand(interaction: ChatInputC
 		}
 	} catch (error) {
 		console.error("Error in leaderboard-exclusions command:", error);
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Es ist ein Fehler beim Verwalten der Leaderboard-Ausschlüsse aufgetreten.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 	}
 }
@@ -43,9 +46,9 @@ async function handleAddExclusion(interaction: ChatInputCommandInteraction, guil
 	const configuredBy = interaction.user.id;
 
 	if (leaderboardExclusionService.isRoleExcluded(guildId, role.id)) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: `Die Rolle ${role} ist bereits vom Leaderboard ausgeschlossen.`,
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -53,9 +56,9 @@ async function handleAddExclusion(interaction: ChatInputCommandInteraction, guil
 	const success = leaderboardExclusionService.addExcludedRole(guildId, role.id, configuredBy);
 
 	if (!success) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: `Fehler beim Ausschließen der Rolle ${role} vom Leaderboard.`,
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -66,9 +69,9 @@ async function handleAddExclusion(interaction: ChatInputCommandInteraction, guil
 	message += `• **Konfiguriert von:** <@${configuredBy}>\n\n`;
 	message += `User mit dieser Rolle werden nicht mehr im Leaderboard angezeigt.`;
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content: message,
-		flags: MessageFlags.Ephemeral,
+		ephemeral: true,
 	});
 }
 
@@ -76,9 +79,9 @@ async function handleRemoveExclusion(interaction: ChatInputCommandInteraction, g
 	const role = interaction.options.getRole("role", true);
 
 	if (!leaderboardExclusionService.isRoleExcluded(guildId, role.id)) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: `Die Rolle ${role} ist nicht vom Leaderboard ausgeschlossen.`,
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -86,9 +89,9 @@ async function handleRemoveExclusion(interaction: ChatInputCommandInteraction, g
 	const success = leaderboardExclusionService.removeExcludedRole(guildId, role.id);
 
 	if (!success) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: `Fehler beim Entfernen des Ausschlusses für die Rolle ${role}.`,
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -96,9 +99,9 @@ async function handleRemoveExclusion(interaction: ChatInputCommandInteraction, g
 	let message = `✅ Ausschluss für Rolle **${role.name}** wurde erfolgreich entfernt!\n\n`;
 	message += `User mit dieser Rolle werden wieder im Leaderboard angezeigt.`;
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content: message,
-		flags: MessageFlags.Ephemeral,
+		ephemeral: true,
 	});
 }
 
@@ -106,9 +109,9 @@ async function handleListExclusions(interaction: ChatInputCommandInteraction, gu
 	const exclusions = leaderboardExclusionService.getExcludedRoles(guildId);
 
 	if (exclusions.length === 0) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "❌ Keine Rollen vom Leaderboard ausgeschlossen.\n\nVerwende `/leaderboard-exclusions add` um eine Rolle auszuschließen.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -126,8 +129,8 @@ async function handleListExclusions(interaction: ChatInputCommandInteraction, gu
 
 	message += `Diese Rollen werden im Leaderboard nicht angezeigt.`;
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content: message,
-		flags: MessageFlags.Ephemeral,
+		ephemeral: true,
 	});
 }

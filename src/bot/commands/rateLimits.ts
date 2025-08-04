@@ -1,12 +1,15 @@
 import { createRateLimitStatusEmbed } from "@/bot/utils/embeds";
 import { rateLimitStatusService } from "@/core/services/rateLimitStatusService";
+import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
 import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 
 export async function handleRateLimitsCommand(interaction: ChatInputCommandInteraction) {
+	const isDeferred = await safeDeferReply(interaction, true);
+	
 	if (!interaction.guild) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -17,9 +20,9 @@ export async function handleRateLimitsCommand(interaction: ChatInputCommandInter
 	// If user wants to see someone else's rate limits, check admin permission
 	if (requestedUser && requestedUser.id !== interaction.user.id) {
 		if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-			await interaction.reply({
+			await safeReply(interaction, {
 				content: "Du benötigst Administrator-Berechtigung um die Rate Limits anderer User anzuzeigen.",
-				flags: MessageFlags.Ephemeral,
+				ephemeral: true,
 			});
 			return;
 		}
@@ -32,12 +35,12 @@ export async function handleRateLimitsCommand(interaction: ChatInputCommandInter
 		const rateLimitStatus = rateLimitStatusService.getUserRateLimitStatus(guildId, userId);
 		const embed = createRateLimitStatusEmbed(targetUser, rateLimitStatus);
 
-		await interaction.reply({ embeds: [embed] });
+		await safeReply(interaction, { embeds: [embed] });
 	} catch (error) {
 		console.error("Error in rate limits command:", error);
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Es ist ein Fehler beim Abrufen der Rate Limits aufgetreten.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 	}
 }

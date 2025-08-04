@@ -7,6 +7,7 @@ import { execute as handleNotificationChannelCommand } from "@/bot/commands/setN
 import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
 import { handleAwardRpCommand } from "@/bot/commands/awardRp";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
+import { safeReply } from "@/bot/utils/safeReply";
 
 export async function onInteractionCreate(interaction: Interaction) {
 	if (!interaction.isChatInputCommand()) {
@@ -45,19 +46,24 @@ export async function onInteractionCreate(interaction: Interaction) {
 	} catch (error) {
 		console.error("Error handling interaction:", error);
 
+		// Check if error is related to interaction timeout/expiration
+		const isTimeoutError = error.code === 10062 || error.message?.includes("Unknown interaction");
+		const isAlreadyAcknowledged = error.code === 40060 || error.message?.includes("already been acknowledged");
+		
+		if (isTimeoutError || isAlreadyAcknowledged) {
+			console.warn("Interaction timeout or already acknowledged, skipping error response");
+			return; // Don't try to respond to expired/acknowledged interactions
+		}
+
 		const errorMessage = "Es ist ein unerwarteter Fehler aufgetreten.";
 
+		// Only try to respond if the interaction seems fresh and we haven't already responded
 		try {
-			if (interaction.deferred) {
-				// If deferred, use editReply to update the deferred response
-				await interaction.editReply({ content: errorMessage });
-			} else if (interaction.replied) {
-				// If already replied, use followUp for additional message
-				await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
-			} else {
-				// If not responded yet, use reply
-				await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
-			}
+			// Use our safe reply utility which handles all the state checking
+			await safeReply(interaction, {
+				content: errorMessage,
+				ephemeral: true,
+			});
 		} catch (responseError) {
 			console.error("Failed to respond to interaction:", responseError);
 			// If we can't respond, the interaction has likely expired or been acknowledged elsewhere

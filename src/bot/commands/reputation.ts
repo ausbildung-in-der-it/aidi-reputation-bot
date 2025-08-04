@@ -1,12 +1,15 @@
 import { createReputationEmbed } from "@/bot/utils/embeds";
 import { reputationService } from "@/core/services/reputationService";
-import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
+import { ChatInputCommandInteraction } from "discord.js";
 
 export async function handleReputationCommand(interaction: ChatInputCommandInteraction) {
+	const isDeferred = await safeDeferReply(interaction, false);
+
 	if (!interaction.guild) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -19,12 +22,12 @@ export async function handleReputationCommand(interaction: ChatInputCommandInter
 		const reputation = reputationService.getUserReputation(guildId, userId);
 		const embed = createReputationEmbed(targetUser, reputation);
 
-		await interaction.reply({ embeds: [embed] });
+		await safeReply(interaction, { embeds: [embed] });
 	} catch (error) {
 		console.error("Error in reputation command:", error);
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Es ist ein Fehler beim Abrufen der Reputation aufgetreten.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 	}
 }

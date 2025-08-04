@@ -11,6 +11,7 @@ import {
 	toggleNotificationChannel,
 	getNotificationStatus,
 } from "@/core/usecases/configureNotificationChannel";
+import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
 import { UserInfo } from "@/core/types/UserInfo";
 
 export const data = new SlashCommandBuilder()
@@ -45,10 +46,12 @@ export const data = new SlashCommandBuilder()
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+	const isDeferred = await safeDeferReply(interaction, true);
+	
 	if (!interaction.guild) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Dieser Command kann nur in einem Server verwendet werden.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -76,18 +79,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				await handleStatus(interaction, guildId);
 				break;
 			default:
-				await interaction.reply({
+				await safeReply(interaction, {
 					content: "Unbekannter Subcommand.",
-					flags: MessageFlags.Ephemeral,
+					ephemeral: true,
 				});
 		}
 	} catch (error) {
 		console.error("Error in notification-channel command:", error);
 
-		if (!interaction.replied && !interaction.deferred) {
-			await interaction.reply({
+		if (!interaction.replied) {
+			await safeReply(interaction, {
 				content: "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-				flags: MessageFlags.Ephemeral,
+				ephemeral: true,
 			});
 		}
 	}
@@ -98,9 +101,9 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 
 	// Validate channel
 	if (channel.type !== ChannelType.GuildText) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Bitte wähle einen Text-Channel aus.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -110,18 +113,18 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 	const botMember = interaction.guild?.members.me;
 
 	if (!botMember) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: "Fehler beim Überprüfen der Bot-Berechtigungen.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
 
 	const permissions = textChannel.permissionsFor(botMember);
 	if (!permissions?.has(PermissionFlagsBits.SendMessages) || !permissions?.has(PermissionFlagsBits.ViewChannel)) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content: `Ich habe keine Berechtigung, Nachrichten in ${channel} zu senden. Bitte überprüfe meine Channel-Berechtigungen.`,
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -133,9 +136,9 @@ async function handleSetChannel(interaction: ChatInputCommandInteraction, guildI
 		configuredBy: userInfo,
 	});
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content: result.message,
-		ephemeral: !result.success,
+		ephemeral: true,
 	});
 
 	// Send a test message to the configured channel if successful
@@ -159,9 +162,9 @@ async function handleToggle(interaction: ChatInputCommandInteraction, guildId: s
 		requestedBy: userInfo,
 	});
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content: result.message,
-		ephemeral: !result.success,
+		ephemeral: true,
 	});
 }
 
@@ -169,10 +172,10 @@ async function handleStatus(interaction: ChatInputCommandInteraction, guildId: s
 	const status = await getNotificationStatus({ guildId });
 
 	if (!status.configured) {
-		await interaction.reply({
+		await safeReply(interaction, {
 			content:
 				"❌ Kein Notification-Channel konfiguriert.\n\nVerwende `/notification-channel set` um einen Channel zu konfigurieren.",
-			flags: MessageFlags.Ephemeral,
+			ephemeral: true,
 		});
 		return;
 	}
@@ -184,13 +187,13 @@ async function handleStatus(interaction: ChatInputCommandInteraction, guildId: s
 		? new Date(status.configuredAt).toLocaleDateString("de-DE")
 		: "Unbekannt";
 
-	await interaction.reply({
+	await safeReply(interaction, {
 		content:
 			`${statusEmoji} **Notification-Channel Status**\n\n` +
 			`**Status:** ${statusText}\n` +
 			`**Channel:** <#${status.channelId}>\n` +
 			`**Konfiguriert am:** ${configuredDate}\n` +
 			`**Konfiguriert von:** <@${status.configuredBy}>`,
-		flags: MessageFlags.Ephemeral,
+		ephemeral: true,
 	});
 }
