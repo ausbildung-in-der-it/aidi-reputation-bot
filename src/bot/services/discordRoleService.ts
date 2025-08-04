@@ -42,13 +42,27 @@ export const discordRoleService = {
 				currentReputationRoles.includes(role.id)
 			);
 
-			// If user should have the same role they already have, no update needed
-			if (newRank?.roleId === currentRankRole?.id) {
+			// Check if any update is needed
+			const shouldHaveRole = newRank !== null;
+			const currentlyHasRole = currentRankRole !== undefined;
+			
+			// If user should have a specific role and already has that exact role, no update needed
+			if (shouldHaveRole && currentlyHasRole && newRank.roleId === currentRankRole.id) {
 				return {
 					success: true,
 					updated: false,
-					previousRole: currentRankRole?.name,
-					newRole: currentRankRole?.name,
+					previousRole: currentRankRole.name,
+					newRole: currentRankRole.name,
+				};
+			}
+			
+			// If user should have no role and currently has no reputation role, no update needed
+			if (!shouldHaveRole && !currentlyHasRole) {
+				return {
+					success: true,
+					updated: false,
+					previousRole: undefined,
+					newRole: undefined,
 				};
 			}
 
