@@ -108,7 +108,7 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 				type: "daily_bonus",
 				guildId,
 				userId: user.id,
-				userName: user.displayName,
+				userName: user.displayName || user.username || `User-${user.id}`,
 				points: dailyResult.points,
 				context: {
 					sourceType: "daily",
@@ -121,13 +121,13 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 				`Introduction ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
 			);
 
-			const channelName = message.channel && "name" in message.channel ? message.channel.name : undefined;
+			const channelName = message.channel && "name" in message.channel ? message.channel.name || undefined : undefined;
 
 			await notificationService.sendNotification({
 				type: "introduction_bonus",
 				guildId,
 				userId: user.id,
-				userName: user.displayName,
+				userName: user.displayName || user.username || `User-${user.id}`,
 				points: introductionResult.points,
 				context: {
 					channelName,

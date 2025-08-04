@@ -66,13 +66,13 @@ export async function onReactionAdd(reaction: MessageReaction | PartialMessageRe
 		if (result.success && result.points && result.points > 0) {
 			const notificationService = getDiscordNotificationService();
 			if (notificationService) {
-				const channelName = message.channel && "name" in message.channel ? message.channel.name : undefined;
+				const channelName = message.channel && "name" in message.channel ? message.channel.name || undefined : undefined;
 
 				await notificationService.sendNotification({
 					type: "trophy_given",
 					guildId,
 					userId: reactor.id,
-					userName: reactor.displayName,
+					userName: reactor.displayName || reactor.username || `User-${reactor.id}`,
 					points: result.points,
 					context: {
 						channelName,
@@ -86,15 +86,15 @@ export async function onReactionAdd(reaction: MessageReaction | PartialMessageRe
 			// Check for rank updates
 			try {
 				const currentRp = result.newTotal || 0;
-				const updatedRoles = await discordRoleService.updateUserRoles(message.guild, recipient.id, currentRp);
+				const roleUpdate = await discordRoleService.updateUserRank(message.guild, recipient.id, currentRp);
 
-				if (updatedRoles && updatedRoles.length > 0) {
+				if (roleUpdate.success && roleUpdate.updated) {
 					console.log(
-						`Updated roles for ${recipient.username} (${currentRp} RP): ${updatedRoles.join(", ")}`
+						`Rank updated for ${recipient.username} (${currentRp} RP): ${roleUpdate.previousRole || 'None'} → ${roleUpdate.newRole || 'None'}`
 					);
 				}
 			} catch (error) {
-				console.error("Error updating user roles after reputation award:", error);
+				console.error("Error updating user rank after reputation award:", error);
 			}
 		}
 	} catch (err) {
