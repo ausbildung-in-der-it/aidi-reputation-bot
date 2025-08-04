@@ -51,7 +51,7 @@ if [ -z "$DRY_RUN" ]; then
 fi
 
 # Define paths
-REMOTE_DB_PATH="/root/aidi-reputation-bot/data.db"
+REMOTE_DB_PATH="/var/lib/docker/volumes/aidi-reputation-bot_bot_data/_data/data.db"
 BACKUP_FILENAME="aidi-reputation-bot_${TIMESTAMP}_${SLUGIFIED_SERVER}.db"
 LOCAL_DB_PATH="$BACKUP_DATE_DIR/$BACKUP_FILENAME"
 

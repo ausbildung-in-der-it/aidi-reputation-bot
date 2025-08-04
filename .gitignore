@@ -7,3 +7,6 @@ node_modules
 # Database backups
 backups/
 *.db.gz
+
+# Database exports
+*_export_*.json
