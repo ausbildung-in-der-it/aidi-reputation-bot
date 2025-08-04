@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { reputationService } from "@/core/services/reputationService";
 import { createLeaderboardEmbed } from "@/bot/utils/embeds";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
@@ -19,7 +19,7 @@ export async function handleLeaderboardCommand(interaction: ChatInputCommandInte
 	const guildName = interaction.guild.name;
 
 	// Defer reply since this command might take a while (member fetching)
-	const isDeferred = await safeDeferReply(interaction, false);
+	await safeDeferReply(interaction, false);
 
 	try {
 		const excludedRoleIds = leaderboardExclusionService.getExcludedRoleIds(guildId);

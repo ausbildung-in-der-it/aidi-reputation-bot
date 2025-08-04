@@ -4,7 +4,7 @@ import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
 import { ChatInputCommandInteraction } from "discord.js";
 
 export async function handleReputationCommand(interaction: ChatInputCommandInteraction) {
-	const isDeferred = await safeDeferReply(interaction, false);
+	await safeDeferReply(interaction, false);
 
 	if (!interaction.guild) {
 		await safeReply(interaction, {

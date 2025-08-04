@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { MessageFlags } from "discord.js";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
@@ -36,8 +35,8 @@ const createMockInteraction = (
 	},
 	options: {
 		getSubcommand: () => subcommand,
-		getRole: (name: string) => options.role || null,
-		getInteger: (name: string) => options.limit || null,
+		getRole: (_name: string) => options.role || null,
+		getInteger: (_name: string) => options.limit || null,
 	},
 	reply: vi.fn(),
 	deferReply: vi.fn(),
@@ -91,12 +90,14 @@ describe("Leaderboard Exclusions", () => {
 			const mockInteraction = createMockInteraction(adminUserId, guildId, "add", {
 				role: testRole,
 			});
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardExclusionsCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			// Expect editReply since we mock deferred = true
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				content: expect.stringContaining("wurde erfolgreich vom Leaderboard ausgeschlossen"),
-				flags: MessageFlags.Ephemeral,
 			});
 			
 			const isExcluded = leaderboardExclusionService.isRoleExcluded(guildId, testRole.id);
@@ -114,12 +115,14 @@ describe("Leaderboard Exclusions", () => {
 			const mockInteraction = createMockInteraction(adminUserId, guildId, "remove", {
 				role: testRole,
 			});
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardExclusionsCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			// Expect editReply since we mock deferred = true
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				content: expect.stringContaining("wurde erfolgreich entfernt"),
-				flags: MessageFlags.Ephemeral,
 			});
 			
 			const isExcluded = leaderboardExclusionService.isRoleExcluded(guildId, testRole.id);
@@ -133,14 +136,16 @@ describe("Leaderboard Exclusions", () => {
 			};
 
 			const mockInteraction = createMockInteraction(adminUserId, guildId, "list");
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 			mockInteraction.guild.roles.cache.set(testRole.id, testRole);
 			leaderboardExclusionService.addExcludedRole(guildId, testRole.id, adminUserId);
 
 			await handleLeaderboardExclusionsCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			// Expect editReply since we mock deferred = true
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Vom Leaderboard ausgeschlossene Rollen"),
-				flags: MessageFlags.Ephemeral,
 			});
 		});
 
@@ -153,12 +158,14 @@ describe("Leaderboard Exclusions", () => {
 			const mockInteraction = createMockInteraction(regularUserId, guildId, "add", {
 				role: testRole,
 			}, false);
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardExclusionsCommand(mockInteraction as any);
 
-			expect(mockInteraction.reply).toHaveBeenCalledWith({
+			// Expect editReply since we mock deferred = true
+			expect(mockInteraction.editReply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Administrator-Berechtigung"),
-				flags: MessageFlags.Ephemeral,
 			});
 		});
 	});
@@ -192,6 +199,8 @@ describe("Leaderboard Exclusions", () => {
 
 			// Mock the interaction with member that has excluded role
 			const mockInteraction = createMockInteraction(adminUserId, guildId, "leaderboard");
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 			mockInteraction.options.getInteger = () => 10;
 			mockInteraction.guild.members.fetch = vi.fn()
 				.mockImplementation((userId) => {
@@ -199,7 +208,9 @@ describe("Leaderboard Exclusions", () => {
 						const roleMap = new Map([[excludedRoleId, { id: excludedRoleId }]]);
 						roleMap.some = (fn) => {
 							for (const role of roleMap.values()) {
-								if (fn(role)) return true;
+								if (fn(role)) {
+									return true;
+								}
 							}
 							return false;
 						};
@@ -241,6 +252,8 @@ describe("Leaderboard Exclusions", () => {
 			});
 
 			const mockInteraction = createMockInteraction(adminUserId, guildId, "leaderboard");
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 

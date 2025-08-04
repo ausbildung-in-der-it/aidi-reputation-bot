@@ -84,6 +84,8 @@ describe("User Views Leaderboard", () => {
 		it("should show empty message when no reputation has been awarded", async () => {
 			const userId = generateUserId();
 			const mockInteraction = createMockInteraction(userId, guildId, guildName);
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -133,6 +135,8 @@ describe("User Views Leaderboard", () => {
 			});
 
 			const mockInteraction = createMockInteraction(userId, guildId, guildName);
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -190,6 +194,8 @@ describe("User Views Leaderboard", () => {
 
 			// Request top 3 only
 			const mockInteraction = createMockInteraction(userId, guildId, guildName, 3);
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -232,6 +238,8 @@ describe("User Views Leaderboard", () => {
 			});
 
 			const mockInteraction = createMockInteraction(userId, guildId, guildName);
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -277,6 +285,8 @@ describe("User Views Leaderboard", () => {
 			}
 
 			const mockInteraction = createMockInteraction(userId, guildId, guildName, 30); // Request 30 but should be capped at 25
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -319,6 +329,8 @@ describe("User Views Leaderboard", () => {
 
 			// Check leaderboard for guild1 only
 			const mockInteraction = createMockInteraction(userId, guild1Id, "Guild 1");
+			// Mock the deferred state for safeReply logic
+			mockInteraction.deferred = true;
 
 			await handleLeaderboardCommand(mockInteraction as any);
 
@@ -341,6 +353,8 @@ describe("User Views Leaderboard", () => {
 				reply: vi.fn(),
 				deferReply: vi.fn(),
 				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
 			};
 
 			await handleLeaderboardCommand(mockInteraction as any);

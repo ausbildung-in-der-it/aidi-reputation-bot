@@ -1,9 +1,9 @@
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
+import { ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 import { leaderboardExclusionService } from "@/core/services/leaderboardExclusionService";
 import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
 
 export async function handleLeaderboardExclusionsCommand(interaction: ChatInputCommandInteraction) {
-	const isDeferred = await safeDeferReply(interaction, true);
+	await safeDeferReply(interaction, true);
 	
 	if (!interaction.guild) {
 		await safeReply(interaction, {

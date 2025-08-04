@@ -4,7 +4,6 @@ import {
 	PermissionFlagsBits,
 	ChannelType,
 	TextChannel,
-	MessageFlags,
 } from "discord.js";
 import {
 	configureNotificationChannel,
@@ -46,7 +45,7 @@ export const data = new SlashCommandBuilder()
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-	const isDeferred = await safeDeferReply(interaction, true);
+	await safeDeferReply(interaction, true);
 	
 	if (!interaction.guild) {
 		await safeReply(interaction, {

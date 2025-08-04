@@ -68,7 +68,7 @@ function isRateLimited(userId: string, commandName: string, config: RateLimitCon
 /**
  * Track command usage for rate limiting
  */
-function trackCommandUsage(userId: string, commandName: string, config: RateLimitConfig): void {
+function trackCommandUsage(userId: string, commandName: string, _config: RateLimitConfig): void {
 	const key = getRateLimitKey(userId, commandName);
 	const now = Date.now();
 	const windowMs = 60 * 1000; // 1 minute window
@@ -98,7 +98,9 @@ function getRemainingCooldown(userId: string, commandName: string, config: RateL
 	const key = getRateLimitKey(userId, commandName);
 	const entry = rateLimits.get(key);
 	
-	if (!entry) return 0;
+	if (!entry) {
+		return 0;
+	}
 	
 	const now = Date.now();
 	

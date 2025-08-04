@@ -38,6 +38,8 @@ const createLeaderboardMockInteraction = (userId: string, guildId: string, guild
 	reply: vi.fn(),
 	deferReply: vi.fn(),
 	editReply: vi.fn(),
+	replied: false,
+	deferred: true, // Mock the deferred state for safeReply logic
 });
 
 // Mock embed functions

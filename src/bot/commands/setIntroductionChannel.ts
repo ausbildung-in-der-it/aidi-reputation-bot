@@ -1,10 +1,10 @@
 import { introductionChannelService } from "@/core/services/introductionChannelService";
 import { configureIntroductionChannel, removeIntroductionChannel } from "@/core/usecases/configureIntroductionChannel";
 import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
-import { ChannelType, ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
+import { ChannelType, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 
 export async function handleSetIntroductionChannelCommand(interaction: ChatInputCommandInteraction) {
-	const isDeferred = await safeDeferReply(interaction, true);
+	await safeDeferReply(interaction, true);
 	
 	// Check if command is run in a guild
 	if (!interaction.guild) {

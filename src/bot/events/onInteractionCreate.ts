@@ -1,4 +1,4 @@
-import { Interaction, MessageFlags } from "discord.js";
+import { Interaction } from "discord.js";
 import { handleReputationCommand } from "@/bot/commands/reputation";
 import { handleLeaderboardCommand } from "@/bot/commands/leaderboard";
 import { handleSetIntroductionChannelCommand } from "@/bot/commands/setIntroductionChannel";
@@ -47,8 +47,8 @@ export async function onInteractionCreate(interaction: Interaction) {
 		console.error("Error handling interaction:", error);
 
 		// Check if error is related to interaction timeout/expiration
-		const isTimeoutError = error.code === 10062 || error.message?.includes("Unknown interaction");
-		const isAlreadyAcknowledged = error.code === 40060 || error.message?.includes("already been acknowledged");
+		const isTimeoutError = (error as any)?.code === 10062 || (error as any)?.message?.includes("Unknown interaction");
+		const isAlreadyAcknowledged = (error as any)?.code === 40060 || (error as any)?.message?.includes("already been acknowledged");
 		
 		if (isTimeoutError || isAlreadyAcknowledged) {
 			console.warn("Interaction timeout or already acknowledged, skipping error response");

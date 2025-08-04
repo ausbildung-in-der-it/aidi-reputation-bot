@@ -1,10 +1,10 @@
 import { createAdminAwardEmbed } from "@/bot/utils/embeds";
 import { manualReputationService } from "@/core/services/manualReputationService";
 import { safeDeferReply, safeReply } from "@/bot/utils/safeReply";
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
+import { ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 
 export async function handleAwardRpCommand(interaction: ChatInputCommandInteraction) {
-	const isDeferred = await safeDeferReply(interaction, true);
+	await safeDeferReply(interaction, true);
 	
 	if (!interaction.guild) {
 		await safeReply(interaction, {

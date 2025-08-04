@@ -21,7 +21,7 @@ export async function safeDeferReply(interaction: ChatInputCommandInteraction, e
 		return true;
 	} catch (error) {
 		// Check if it's a timeout/expired interaction
-		if (error.code === 10062 || error.code === 40060) {
+		if ((error as any)?.code === 10062 || (error as any)?.code === 40060) {
 			console.warn("Interaction expired or already acknowledged, skipping defer");
 			return false;
 		}
@@ -56,7 +56,7 @@ export async function safeReply(interaction: ChatInputCommandInteraction, option
 		}
 	} catch (error) {
 		// Check for known interaction errors and skip retry
-		if (error.code === 10062 || error.code === 40060) {
+		if ((error as any)?.code === 10062 || (error as any)?.code === 40060) {
 			console.warn("Interaction expired or already acknowledged, skipping response");
 			return;
 		}

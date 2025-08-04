@@ -16,8 +16,7 @@ function shouldBeEphemeral(interaction: ChatInputCommandInteraction): boolean {
 		"leaderboard-exclusions"
 	];
 	
-	// Only leaderboard is public by default
-	return interaction.commandName !== "leaderboard";
+	return ephemeralCommands.includes(interaction.commandName);
 }
 
 /**
