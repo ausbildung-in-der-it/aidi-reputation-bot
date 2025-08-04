@@ -3,3 +3,7 @@ dist
 *.db
 .env
 node_modules
+
+# Database backups
+backups/
+*.db.gz
