@@ -137,6 +137,72 @@ const commands = [
 					{ name: "Nur vergebene RP", value: "given" }
 				)
 		),
+	new SlashCommandBuilder()
+		.setName("create-invite")
+		.setDescription("Erstellt einen tracked Invite Link für RP-Belohnungen")
+		.addChannelOption(option =>
+			option
+				.setName("channel")
+				.setDescription("Channel für den Invite (Standard: aktueller Channel)")
+				.setRequired(false)
+		)
+		.addIntegerOption(option =>
+			option
+				.setName("max_uses")
+				.setDescription("Maximale Anzahl Uses (Standard: 1)")
+				.setRequired(false)
+				.setMinValue(1)
+				.setMaxValue(100)
+		)
+		.addIntegerOption(option =>
+			option
+				.setName("expire_days")
+				.setDescription("Gültigkeitsdauer in Tagen (Standard: 7)")
+				.setRequired(false)
+				.setMinValue(1)
+				.setMaxValue(30)
+		),
+	new SlashCommandBuilder()
+		.setName("my-invites")
+		.setDescription("Zeigt deine aktiven Invites und Statistiken an"),
+	new SlashCommandBuilder()
+		.setName("delete-invite")
+		.setDescription("Löscht einen deiner Invites")
+		.addStringOption(option =>
+			option
+				.setName("code")
+				.setDescription("Der Invite-Code zum Löschen")
+				.setRequired(true)
+		),
+	new SlashCommandBuilder()
+		.setName("manage-invites")
+		.setDescription("Verwaltet Invite-System (Admin-only)")
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("list")
+				.setDescription("Zeigt alle aktiven Invites an")
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("delete")
+				.setDescription("Löscht einen Invite")
+				.addStringOption(option =>
+					option.setName("code").setDescription("Der Invite-Code zum Löschen").setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("pending")
+				.setDescription("Zeigt ausstehende Invite-Belohnungen an")
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("award")
+				.setDescription("Vergibt ausstehende Invite-Belohnungen")
+				.addUserOption(option =>
+					option.setName("user").setDescription("User dem die Belohnungen vergeben werden sollen").setRequired(true)
+				)
+		),
 	notificationChannelCommand,
 ].map(command => command.toJSON());
 

@@ -10,6 +10,7 @@ import { onReactionAdd } from "@/bot/events/onReactionAdd";
 import { onReactionRemove } from "@/bot/events/onReactionRemove";
 import { onInteractionCreate } from "@/bot/events/onInteractionCreate";
 import { onMessageCreate } from "@/bot/events/onMessageCreate";
+import { onGuildMemberAdd } from "@/bot/events/onGuildMemberAdd";
 import { registerSlashCommands } from "@/bot/commands/registerCommands";
 import { closeDatabase } from "@/db/sqlite";
 import { initializeDiscordNotificationService } from "@/bot/services/discordNotificationService";
@@ -30,6 +31,8 @@ const client = new Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.MessageContent,
 		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildInvites,
 	],
 	partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
 });
@@ -72,6 +75,10 @@ client.on("interactionCreate", async interaction => {
 
 client.on("messageCreate", async message => {
 	await onMessageCreate(message);
+});
+
+client.on("guildMemberAdd", async member => {
+	await onGuildMemberAdd(member);
 });
 
 // Graceful shutdown

@@ -87,4 +87,32 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, role_id)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS user_invites (
+      guild_id TEXT NOT NULL,
+      invite_code TEXT NOT NULL,
+      creator_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT,
+      max_uses INTEGER DEFAULT 1,
+      current_uses INTEGER DEFAULT 0,
+      active BOOLEAN DEFAULT TRUE,
+      PRIMARY KEY (guild_id, invite_code)
+    );
+  `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS invite_joins (
+      guild_id TEXT NOT NULL,
+      invite_code TEXT NOT NULL,
+      creator_id TEXT NOT NULL,
+      joined_user_id TEXT NOT NULL,
+      joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      rewarded BOOLEAN DEFAULT FALSE,
+      rewarded_at TEXT,
+      PRIMARY KEY (guild_id, invite_code, joined_user_id)
+    );
+  `);
 }

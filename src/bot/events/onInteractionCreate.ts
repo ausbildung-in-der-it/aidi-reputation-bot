@@ -8,6 +8,10 @@ import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
 import { handleAwardRpCommand } from "@/bot/commands/awardRp";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
 import { handleReputationEventsCommand } from "@/bot/commands/reputationEvents";
+import { handleCreateInviteCommand } from "@/bot/commands/createInvite";
+import { handleMyInvitesCommand } from "@/bot/commands/myInvites";
+import { handleDeleteInviteCommand } from "@/bot/commands/deleteInvite";
+import { handleManageInvitesCommand } from "@/bot/commands/manageInvites";
 import { safeReply } from "@/bot/utils/safeReply";
 
 export async function onInteractionCreate(interaction: Interaction) {
@@ -43,6 +47,18 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "reputation-events":
 				await handleReputationEventsCommand(interaction);
+				break;
+			case "create-invite":
+				await handleCreateInviteCommand(interaction);
+				break;
+			case "my-invites":
+				await handleMyInvitesCommand(interaction);
+				break;
+			case "delete-invite":
+				await handleDeleteInviteCommand(interaction);
+				break;
+			case "manage-invites":
+				await handleManageInvitesCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);
