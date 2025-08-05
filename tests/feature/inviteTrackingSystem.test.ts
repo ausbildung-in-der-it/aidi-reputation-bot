@@ -31,6 +31,7 @@ describe("Invite Tracking System", () => {
 		db.exec("DELETE FROM invite_joins");
 		db.exec("DELETE FROM reputation_events");
 		db.exec("DELETE FROM invite_channel_config");
+		db.exec("DELETE FROM invite_user_rewards");
 		
 		guildId = generateGuildId();
 		channelId = generateMessageId(); // Using as channel ID
@@ -237,6 +238,10 @@ describe("Invite Tracking System", () => {
 			const pendingRewards = inviteTrackingService.getPendingRewards(guildId);
 			expect(pendingRewards).toHaveLength(1);
 			expect(pendingRewards[0].joined_user_id).toBe(joinedUserId);
+			
+			// Should have awarded RP immediately
+			const creatorRP = reputationService.getUserReputation(guildId, creatorId);
+			expect(creatorRP).toBe(5);
 		});
 
 		it("should send notification when member joins via invite", async () => {
@@ -285,18 +290,163 @@ describe("Invite Tracking System", () => {
 			// Process join event
 			await onGuildMemberAdd(mockMember as any);
 
-			// Should have sent notification
+			// Should have sent notification with RP points
 			expect(mockSendNotification).toHaveBeenCalledWith({
 				type: "invite_join",
 				guildId,
 				userId: joinedUserId,
 				userName: "Joined User",
-				points: 0,
+				points: 5,
 				context: {
 					inviteCode: inviteCode,
 					inviteCreatorName: "Creator Display",
 				},
 			});
+			
+			// Should have awarded RP immediately
+			const creatorRP = reputationService.getUserReputation(guildId, creatorId);
+			expect(creatorRP).toBe(5);
+		});
+
+		it("should not award RP multiple times for the same user", async () => {
+			const creatorId = "creator_123";
+			const joinedUserId = "joined_456";
+			const inviteCode1 = "first123";
+			const inviteCode2 = "second123";
+
+			// Create first tracked invite
+			inviteTrackingService.createInvite({
+				guildId,
+				inviteCode: inviteCode1,
+				creatorId,
+				channelId,
+				maxUses: 1,
+			});
+
+			// Mock Discord objects for first join
+			const mockInvites1 = new Collection([
+				[inviteCode1, { code: inviteCode1, uses: 1 }]
+			]);
+			
+			const mockGuild = {
+				id: guildId,
+				invites: {
+					fetch: vi.fn().mockResolvedValue(mockInvites1)
+				},
+				members: {
+					fetch: vi.fn().mockResolvedValue({
+						displayName: "Creator Display",
+						user: { username: "creator" },
+						send: vi.fn().mockResolvedValue(true)
+					})
+				}
+			};
+
+			const mockMember = {
+				guild: mockGuild,
+				displayName: "Joined User",
+				user: {
+					id: joinedUserId,
+					username: "testuser",
+					createdTimestamp: Date.now() - (30 * 24 * 60 * 60 * 1000) // 30 days old
+				}
+			};
+
+			// Process first join event
+			await onGuildMemberAdd(mockMember as any);
+
+			// Should have awarded RP for first join
+			let creatorRP = reputationService.getUserReputation(guildId, creatorId);
+			expect(creatorRP).toBe(5);
+
+			// Create second tracked invite (same creator, same user will join again)
+			inviteTrackingService.createInvite({
+				guildId,
+				inviteCode: inviteCode2,
+				creatorId,
+				channelId,
+				maxUses: 1,
+			});
+
+			// Mock Discord objects for second join (same user rejoining)
+			const mockInvites2 = new Collection([
+				[inviteCode2, { code: inviteCode2, uses: 1 }]
+			]);
+			
+			mockGuild.invites.fetch = vi.fn().mockResolvedValue(mockInvites2);
+
+			// Process second join event (same user)
+			await onGuildMemberAdd(mockMember as any);
+
+			// Should NOT have awarded additional RP
+			creatorRP = reputationService.getUserReputation(guildId, creatorId);
+			expect(creatorRP).toBe(5); // Still 5, not 10
+
+			// Should have sent notification with 0 points for second join
+			expect(mockSendNotification).toHaveBeenLastCalledWith({
+				type: "invite_join",
+				guildId,
+				userId: joinedUserId,
+				userName: "Joined User",
+				points: 0, // No points awarded for repeat user
+				context: {
+					inviteCode: inviteCode2,
+					inviteCreatorName: "Creator Display",
+				},
+			});
+		});
+	});
+
+	describe("User Reward Tracking", () => {
+		it("should track user rewards correctly", () => {
+			const creatorId = "creator_123";
+			const joinedUserId = "joined_456";
+
+			// Initially, user should not be rewarded
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId, creatorId, joinedUserId)).toBe(false);
+
+			// Record the reward
+			const result = inviteTrackingService.recordUserReward(guildId, creatorId, joinedUserId);
+			expect(result).toBe(true);
+
+			// Now user should be marked as rewarded
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId, creatorId, joinedUserId)).toBe(true);
+
+			// Should not double-record (INSERT OR IGNORE)
+			const secondResult = inviteTrackingService.recordUserReward(guildId, creatorId, joinedUserId);
+			expect(secondResult).toBe(true); // Still returns true due to OR IGNORE
+
+			// Get reward history
+			const history = inviteTrackingService.getUserRewardHistory(guildId, creatorId);
+			expect(history).toHaveLength(1);
+			expect(history[0].joined_user_id).toBe(joinedUserId);
+			expect(history[0].first_rewarded_at).toBeDefined();
+		});
+
+		it("should differentiate between different creators", () => {
+			const creator1 = "creator_123";
+			const creator2 = "creator_456";
+			const joinedUserId = "joined_789";
+
+			// Record reward for creator1
+			inviteTrackingService.recordUserReward(guildId, creator1, joinedUserId);
+
+			// Creator1 should be marked as rewarded, but not creator2
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId, creator1, joinedUserId)).toBe(true);
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId, creator2, joinedUserId)).toBe(false);
+		});
+
+		it("should differentiate between different guilds", () => {
+			const guildId2 = generateGuildId();
+			const creatorId = "creator_123";
+			const joinedUserId = "joined_456";
+
+			// Record reward for guild1
+			inviteTrackingService.recordUserReward(guildId, creatorId, joinedUserId);
+
+			// Should be rewarded in guild1 but not guild2
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId, creatorId, joinedUserId)).toBe(true);
+			expect(inviteTrackingService.hasUserBeenRewardedBefore(guildId2, creatorId, joinedUserId)).toBe(false);
 		});
 	});
 

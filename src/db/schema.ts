@@ -124,4 +124,14 @@ export function createTables(db: Database.Database): void {
       configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS invite_user_rewards (
+      guild_id TEXT NOT NULL,
+      creator_id TEXT NOT NULL,
+      joined_user_id TEXT NOT NULL,
+      first_rewarded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, creator_id, joined_user_id)
+    );
+  `);
 }

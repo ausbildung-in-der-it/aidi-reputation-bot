@@ -246,4 +246,43 @@ export const inviteTrackingService = {
 		if (!result) {return true;} // Consider non-existent invites as "at max"
 		return result.current_uses >= result.max_uses;
 	},
+
+	hasUserBeenRewardedBefore: (guildId: string, creatorId: string, joinedUserId: string): boolean => {
+		const stmt = db.prepare(`
+			SELECT 1 FROM invite_user_rewards
+			WHERE guild_id = ? AND creator_id = ? AND joined_user_id = ?
+		`);
+		const result = stmt.get(guildId, creatorId, joinedUserId);
+		return !!result;
+	},
+
+	recordUserReward: (guildId: string, creatorId: string, joinedUserId: string): boolean => {
+		try {
+			const stmt = db.prepare(`
+				INSERT OR IGNORE INTO invite_user_rewards (
+					guild_id, creator_id, joined_user_id
+				) VALUES (?, ?, ?)
+			`);
+			stmt.run(guildId, creatorId, joinedUserId);
+			return true;
+		} catch (error) {
+			console.error("Error recording user reward:", error);
+			return false;
+		}
+	},
+
+	getUserRewardHistory: (guildId: string, creatorId: string): Array<{
+		joined_user_id: string;
+		first_rewarded_at: string;
+	}> => {
+		const stmt = db.prepare(`
+			SELECT joined_user_id, first_rewarded_at FROM invite_user_rewards
+			WHERE guild_id = ? AND creator_id = ?
+			ORDER BY first_rewarded_at DESC
+		`);
+		return stmt.all(guildId, creatorId) as Array<{
+			joined_user_id: string;
+			first_rewarded_at: string;
+		}>;
+	},
 };

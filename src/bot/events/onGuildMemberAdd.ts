@@ -1,5 +1,6 @@
 import { GuildMember } from "discord.js";
 import { inviteTrackingService } from "@/core/services/inviteTrackingService";
+import { reputationService } from "@/core/services/reputationService";
 import { getDiscordNotificationService } from "@/bot/services/discordNotificationService";
 
 const MIN_ACCOUNT_AGE_DAYS = 0;
@@ -80,6 +81,37 @@ export async function onGuildMemberAdd(member: GuildMember) {
 					console.log(`Invite ${trackedInvite.invite_code} reached max uses and was deactivated`);
 				}
 				
+				// Check if this user has been rewarded before for this joined user
+				const alreadyRewarded = inviteTrackingService.hasUserBeenRewardedBefore(
+					guildId, 
+					trackedInvite.creator_id, 
+					member.user.id
+				);
+				
+				if (alreadyRewarded) {
+					console.log(`🔒 [INVITE DEBUG] Creator ${trackedInvite.creator_id} already rewarded for user ${member.user.id} - skipping RP award`);
+				} else {
+					// Award RP immediately for invite join
+					try {
+						const awardId = `invite_join_${trackedInvite.invite_code}_${Date.now()}`;
+						reputationService.trackReputationReaction({
+							guildId,
+							messageId: awardId,
+							toUserId: trackedInvite.creator_id,
+							fromUserId: "system", // System awarded
+							emoji: "invite_join",
+							amount: 5,
+						});
+						
+						// Record that this user has been rewarded for this joined user
+						inviteTrackingService.recordUserReward(guildId, trackedInvite.creator_id, member.user.id);
+						
+						console.log(`✅ [INVITE DEBUG] Awarded 5 RP to ${trackedInvite.creator_id} for invite ${trackedInvite.invite_code} (first time for user ${member.user.id})`);
+					} catch (error) {
+						console.error("Error awarding RP for invite join:", error);
+					}
+				}
+				
 				// Send public notification to notification channel
 				try {
 					const notificationService = getDiscordNotificationService();
@@ -92,7 +124,7 @@ export async function onGuildMemberAdd(member: GuildMember) {
 							guildId,
 							userId: member.user.id,
 							userName: member.displayName || member.user.username,
-							points: 0, // No points until application is accepted
+							points: alreadyRewarded ? 0 : 5, // Only show points if actually awarded
 							context: {
 								inviteCode: trackedInvite.invite_code,
 								inviteCreatorName: creatorName,
@@ -107,11 +139,15 @@ export async function onGuildMemberAdd(member: GuildMember) {
 				try {
 					const creator = await member.guild.members.fetch(trackedInvite.creator_id);
 					if (creator) {
+						const rpMessage = alreadyRewarded 
+							? `ℹ️ Du hast bereits RP für diesen User erhalten.`
+							: `💰 Du hast 5 RP erhalten!`;
+							
 						await creator.send(
 							`🎉 **Jemand ist über deinen Invite beigetreten!**\n\n` +
 							`**User:** ${member.user.username}\n` +
 							`**Invite:** \`${trackedInvite.invite_code}\`\n\n` +
-							`💰 Du erhältst 5 RP sobald die Bewerbung angenommen wird!`
+							rpMessage
 						).catch(() => {
 							// User has DMs disabled, that's fine
 							console.log(`Could not send DM to invite creator ${trackedInvite.creator_id}`);

@@ -185,13 +185,13 @@ export async function handleCreateInviteCommand(interaction: ChatInputCommandInt
 		message += `• **Link:** https://discord.gg/${discordInvite.code}\n`;
 		message += `• **Max Uses:** ${maxUses}\n`;
 		message += `• **Gültig bis:** ${expiresDate}\n\n`;
-		message += `💰 **Belohnung:** 5 RP pro erfolgreichen Join (nach Bewerbungsannahme)\n\n`;
+		message += `💰 **Belohnung:** 5 RP pro erfolgreichen Join\n\n`;
 		
 		if (!isAdmin) {
 			message += `ℹ️ *Standard-Invite mit ${STANDARD_MAX_USES} Uses und ${STANDARD_EXPIRE_DAYS} Tagen Gültigkeit.*\n`;
 		}
 		
-		message += `ℹ️ *Teile diesen Link mit Freunden. Du erhältst RP sobald sie beitreten und ihre Bewerbung angenommen wird.*`;
+		message += `ℹ️ *Teile diesen Link mit Freunden. Du erhältst RP sobald sie beitreten.*`;
 
 		await safeReply(interaction, {
 			content: message,
