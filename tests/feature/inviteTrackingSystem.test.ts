@@ -7,6 +7,7 @@ import { handleCreateInviteCommand } from "@/bot/commands/createInvite";
 import { handleMyInvitesCommand } from "@/bot/commands/myInvites";
 import { handleDeleteInviteCommand } from "@/bot/commands/deleteInvite";
 import { handleManageInvitesCommand } from "@/bot/commands/manageInvites";
+import { handleSetInviteChannelCommand } from "@/bot/commands/setInviteChannel";
 import { onGuildMemberAdd } from "@/bot/events/onGuildMemberAdd";
 import { db } from "@/db/sqlite";
 import { createDiscordUser, generateGuildId, generateMessageId } from "../setup/testUtils";
@@ -814,6 +815,391 @@ describe("Invite Tracking System", () => {
 			expect(guild2Pending).toHaveLength(1);
 			expect(guild1Pending[0].joined_user_id).toBe("joined1");
 			expect(guild2Pending[0].joined_user_id).toBe("joined2");
+		});
+	});
+
+	describe("Default Channel Management", () => {
+		it("should allow admin to set default invite channel", async () => {
+			const admin = createDiscordUser("admin_123");
+			const targetChannel = {
+				id: channelId,
+				type: ChannelType.GuildText,
+			};
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: admin,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Is admin
+				},
+				options: {
+					getSubcommand: vi.fn().mockReturnValue("set"),
+					getChannel: vi.fn().mockReturnValue(targetChannel),
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleSetInviteChannelCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Default-Invite-Channel gesetzt"),
+				flags: 64, // Ephemeral
+			});
+
+			// Verify channel was configured
+			const config = inviteChannelService.getChannelConfig(guildId);
+			expect(config).toBeTruthy();
+			expect(config?.channelId).toBe(channelId);
+			expect(config?.configuredBy).toBe(admin.id);
+		});
+
+		it("should allow admin to show default invite channel", async () => {
+			const admin = createDiscordUser("admin_123");
+
+			// Set up channel first
+			inviteChannelService.setChannelConfig({
+				guildId,
+				channelId,
+				configuredBy: admin.id,
+			});
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: admin,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Is admin
+				},
+				options: {
+					getSubcommand: vi.fn().mockReturnValue("show"),
+					getChannel: vi.fn().mockReturnValue(null), // No channel needed for show
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleSetInviteChannelCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Current Default-Invite-Channel"),
+				flags: 64, // Ephemeral
+			});
+		});
+
+		it("should allow admin to remove default invite channel", async () => {
+			const admin = createDiscordUser("admin_123");
+
+			// Set up channel first  
+			inviteChannelService.setChannelConfig({
+				guildId,
+				channelId,
+				configuredBy: admin.id,
+			});
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: admin,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Is admin
+				},
+				options: {
+					getSubcommand: vi.fn().mockReturnValue("remove"),
+					getChannel: vi.fn().mockReturnValue(null), // No channel needed for remove
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleSetInviteChannelCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Default-Invite-Channel entfernt"),
+				flags: 64, // Ephemeral
+			});
+
+			// Verify channel was removed
+			const config = inviteChannelService.getChannelConfig(guildId);
+			expect(config).toBeNull();
+		});
+
+		it("should deny non-admin users access to set-invite-channel", async () => {
+			const user = createDiscordUser("user_123");
+			const targetChannel = {
+				id: channelId,
+				type: ChannelType.GuildText,
+			};
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: user,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Not admin
+				},
+				options: {
+					getSubcommand: vi.fn().mockReturnValue("set"),
+					getChannel: vi.fn().mockReturnValue(targetChannel),
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleSetInviteChannelCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Administrator-Berechtigung"),
+				flags: 64, // Ephemeral
+			});
+		});
+
+		it("should handle show command when no channel is configured", async () => {
+			const admin = createDiscordUser("admin_123");
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: admin,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Is admin
+				},
+				options: {
+					getSubcommand: vi.fn().mockReturnValue("show"),
+					getChannel: vi.fn().mockReturnValue(null), // No channel needed for show
+				},
+				reply: vi.fn(),
+			} as any;
+
+			await handleSetInviteChannelCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Kein Default-Invite-Channel konfiguriert"),
+				flags: 64, // Ephemeral
+			});
+		});
+	});
+
+	describe("Parameter Standardization", () => {
+		beforeEach(() => {
+			// Set up default channel for these tests
+			inviteChannelService.setChannelConfig({
+				guildId,
+				channelId,
+				configuredBy: "admin_123",
+			});
+		});
+
+		it("should give regular users standard parameters (10 uses, 7 days)", async () => {
+			const user = createDiscordUser("user_123");
+			const targetChannel = {
+				id: channelId,
+				type: ChannelType.GuildText,
+				createInvite: vi.fn().mockResolvedValue({
+					code: "standard123",
+					delete: vi.fn()
+				})
+			};
+
+			const mockInteraction = {
+				guild: { 
+					id: guildId,
+					channels: {
+						cache: {
+							get: vi.fn().mockReturnValue(targetChannel)
+						}
+					}
+				},
+				user: user,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Regular user
+				},
+				options: {
+					getChannel: vi.fn().mockReturnValue(null),
+					getInteger: vi.fn().mockReturnValue(null),
+				},
+				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
+			} as any;
+
+			await handleCreateInviteCommand(mockInteraction);
+
+			// Check that Discord invite was created with standard parameters
+			expect(targetChannel.createInvite).toHaveBeenCalledWith({
+				maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+				maxUses: 10, // Standard max uses
+				unique: true,
+				reason: expect.stringContaining("user_123"),
+			});
+
+			// Verify invite was stored with standard parameters
+			const invites = inviteTrackingService.getUserInvites(guildId, user.id);
+			expect(invites).toHaveLength(1);
+			expect(invites[0].max_uses).toBe(10);
+		});
+
+		it("should allow admins to override parameters", async () => {
+			const admin = createDiscordUser("admin_123");
+			const customChannel = {
+				id: "custom_channel_id",
+				type: ChannelType.GuildText,
+				createInvite: vi.fn().mockResolvedValue({
+					code: "admin123",
+					delete: vi.fn()
+				})
+			};
+
+			const mockInteraction = {
+				guild: { 
+					id: guildId,
+					channels: {
+						cache: {
+							get: vi.fn().mockReturnValue(customChannel)
+						}
+					}
+				},
+				user: admin,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(true), // Admin
+				},
+				options: {
+					getChannel: vi.fn().mockReturnValue(customChannel),
+					getInteger: vi.fn()
+						.mockReturnValueOnce(25) // max_uses
+						.mockReturnValueOnce(14), // expire_days
+				},
+				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
+			} as any;
+
+			await handleCreateInviteCommand(mockInteraction);
+
+			// Check that Discord invite was created with admin's custom parameters
+			expect(customChannel.createInvite).toHaveBeenCalledWith({
+				maxAge: 14 * 24 * 60 * 60, // 14 days in seconds
+				maxUses: 25, // Admin's custom max uses
+				unique: true,
+				reason: expect.stringContaining("admin_123"),
+			});
+
+			// Verify invite was stored with custom parameters
+			const invites = inviteTrackingService.getUserInvites(guildId, admin.id);
+			expect(invites).toHaveLength(1);
+			expect(invites[0].max_uses).toBe(25);
+		});
+
+		it("should show standard parameter info in success message for regular users", async () => {
+			const user = createDiscordUser("user_123");
+			const targetChannel = {
+				id: channelId,
+				type: ChannelType.GuildText,
+				createInvite: vi.fn().mockResolvedValue({
+					code: "msg123",
+					delete: vi.fn()
+				})
+			};
+
+			const mockInteraction = {
+				guild: { 
+					id: guildId,
+					channels: {
+						cache: {
+							get: vi.fn().mockReturnValue(targetChannel)
+						}
+					}
+				},
+				user: user,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Regular user
+				},
+				options: {
+					getChannel: vi.fn().mockReturnValue(null),
+					getInteger: vi.fn().mockReturnValue(null),
+				},
+				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
+			} as any;
+
+			await handleCreateInviteCommand(mockInteraction);
+
+			// Check success message contains standard parameter info
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Standard-Invite mit 10 Uses und 7 Tagen"),
+				flags: 64, // Ephemeral
+			});
+		});
+	});
+
+	describe("Error Scenarios", () => {
+		it("should error when no default channel is configured for regular users", async () => {
+			const user = createDiscordUser("user_123");
+
+			const mockInteraction = {
+				guild: { id: guildId },
+				user: user,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Regular user
+				},
+				options: {
+					getChannel: vi.fn().mockReturnValue(null),
+					getInteger: vi.fn().mockReturnValue(null),
+				},
+				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
+			} as any;
+
+			await handleCreateInviteCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Kein Default-Invite-Channel konfiguriert"),
+				flags: 64, // Ephemeral
+			});
+		});
+
+		it("should error when default channel is invalid/not found", async () => {
+			const user = createDiscordUser("user_123");
+
+			// Set up invalid channel configuration
+			inviteChannelService.setChannelConfig({
+				guildId,
+				channelId: "invalid_channel_id",
+				configuredBy: "admin_123",
+			});
+
+			const mockInteraction = {
+				guild: { 
+					id: guildId,
+					channels: {
+						cache: {
+							get: vi.fn().mockReturnValue(null) // Channel not found
+						}
+					}
+				},
+				user: user,
+				memberPermissions: {
+					has: vi.fn().mockReturnValue(false), // Regular user
+				},
+				options: {
+					getChannel: vi.fn().mockReturnValue(null),
+					getInteger: vi.fn().mockReturnValue(null),
+				},
+				reply: vi.fn(),
+				deferReply: vi.fn(),
+				editReply: vi.fn(),
+				replied: false,
+				deferred: false,
+			} as any;
+
+			await handleCreateInviteCommand(mockInteraction);
+
+			expect(mockInteraction.reply).toHaveBeenCalledWith({
+				content: expect.stringContaining("Default-Invite-Channel nicht gefunden oder ungültig"),
+				flags: 64, // Ephemeral
+			});
 		});
 	});
 });
