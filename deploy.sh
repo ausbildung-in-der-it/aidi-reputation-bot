@@ -20,11 +20,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if server is provided
+# Set default server if none provided
 if [ -z "$SERVER" ]; then
-    echo "Usage: ./deploy.sh [--dry-run] <server>"
-    echo "Example: ./deploy.sh --dry-run root@example.com"
-    exit 1
+    SERVER="azubi.community"
+    echo "No server specified, using default: $SERVER"
 fi
 
 # Source and destination paths
@@ -46,3 +45,12 @@ rsync -avz $DRY_RUN \
     "$SOURCE_DIR" "$DEST_DIR"
 
 echo "Deployment complete!"
+
+# Build and restart Docker containers on the server (skip if dry run)
+if [ -z "$DRY_RUN" ]; then
+    echo "Building and restarting Docker containers..."
+    ssh root@$SERVER "cd /root/aidi-reputation-bot && docker compose build && docker compose up -d"
+    echo "Docker containers restarted!"
+else
+    echo "DRY RUN: Would execute: ssh root@$SERVER \"cd /root/aidi-reputation-bot && docker compose build && docker compose up -d\""
+fi
