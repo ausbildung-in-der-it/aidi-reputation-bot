@@ -13,3 +13,7 @@ backups/
 
 # Log files
 *.log
+
+# SQLite WAL mode files
+*.db-wal
+*.db-shm

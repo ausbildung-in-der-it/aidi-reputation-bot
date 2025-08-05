@@ -5,6 +5,12 @@ import { createTables } from "./schema";
 const databaseUrl = process.env.DATABASE_URL || "./data.db";
 export const db = new Database(databaseUrl);
 
+// Configure SQLite for better concurrency and performance
+db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 30000'); // 30 seconds
+db.pragma('foreign_keys = ON');
+db.defaultSafeIntegers(true);
+
 export function closeDatabase() {
 	db.close();
 }
