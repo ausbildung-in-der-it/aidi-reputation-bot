@@ -6,11 +6,10 @@
 
 DOMAIN="$1"
 
-# Check if domain is provided
+# Set default domain if none provided
 if [ -z "$DOMAIN" ]; then
-    echo "Usage: ./fetch-logs.sh <domain>"
-    echo "Example: ./fetch-logs.sh example.com"
-    exit 1
+    DOMAIN="azubi.community"
+    echo "No domain specified, using default: $DOMAIN"
 fi
 
 # Generate timestamp for log filename

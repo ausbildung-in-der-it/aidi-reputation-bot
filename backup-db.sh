@@ -30,12 +30,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if server is provided
+# Set default server if none provided
 if [ -z "$SERVER" ]; then
-    echo "Usage: ./backup-db.sh [--dry-run] [--compress] <server>"
-    echo "Example: ./backup-db.sh --dry-run root@example.com"
-    echo "Example: ./backup-db.sh --compress root@production-server.com"
-    exit 1
+    SERVER="root@azubi.community"
+    echo "No server specified, using default: $SERVER"
 fi
 
 # Generate timestamp and create backup directory structure
