@@ -75,10 +75,12 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 
 		// Only process messages in forum threads
 		if (!channel || !("parent" in channel) || !channel.parent?.id) {
+			console.debug(`[INTRO DEBUG] Skipping non-forum message: channelType=${channel?.type}, hasParent=${"parent" in channel}, parentId=${("parent" in channel) ? channel.parent?.id : "N/A"}, guild=${guildId}, user=${user.username}`);
 			return; // Skip non-forum messages
 		}
 
 		const forumChannelId = channel.parent.id;
+		console.debug(`[INTRO DEBUG] Processing forum message: forumChannelId=${forumChannelId}, threadId=${channel.id}, guild=${guildId}, user=${user.username}`);
 
 		// Detect thread starter vs thread reply
 		// Thread starter: Message author is thread owner AND it's the very first message (within 1 second) AND no message reference
@@ -98,7 +100,7 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 
 		// Debug logging
 		console.log(
-			`Forum message debug: threadId=${channel.id}, authorId=${message.author?.id}, ownerId=${"ownerId" in channel ? channel.ownerId : "N/A"}, timeDiff=${message.createdTimestamp && "createdTimestamp" in channel ? Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) : "N/A"}ms, hasNoReference=${hasNoReference}, isThreadStarter=${isThreadStarter}, isThreadReply=${isThreadReply}`
+			`[INTRO DEBUG] Forum message analysis: threadId=${channel.id}, authorId=${message.author?.id}, ownerId=${"ownerId" in channel ? channel.ownerId : "N/A"}, timeDiff=${message.createdTimestamp && "createdTimestamp" in channel ? Math.abs(message.createdTimestamp - (channel.createdTimestamp || 0)) : "N/A"}ms, hasNoReference=${hasNoReference}, isThreadStarter=${isThreadStarter}, isThreadReply=${isThreadReply}, guild=${guildId}, user=${user.username}`
 		);
 
 		const introductionResult = await awardIntroductionBonus({
@@ -112,8 +114,11 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 			threadOwnerId: "ownerId" in channel ? channel.ownerId : undefined,
 		});
 
+		console.log(`[INTRO DEBUG] Introduction bonus result: success=${introductionResult.success}, awarded=${introductionResult.awarded}, points=${introductionResult.points}, bonusType=${introductionResult.bonusType}, reason="${introductionResult.reason}", guild=${guildId}, user=${user.username}`);
+
 		// Send notifications for successful bonus awards
 		const notificationService = getDiscordNotificationService();
+		console.log(`[INTRO DEBUG] Notification service available: ${notificationService !== null}, guild=${guildId}, user=${user.username}`);
 
 		if (dailyResult.success && dailyResult.awarded && notificationService) {
 			console.log(
@@ -134,22 +139,29 @@ export async function onMessageCreate(message: Message | PartialMessage) {
 
 		if (introductionResult.success && introductionResult.awarded && notificationService) {
 			console.log(
-				`Introduction ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
+				`[INTRO DEBUG] Sending introduction notification: ${introductionResult.bonusType} bonus awarded: ${introductionResult.points} RP to ${user.username} in guild ${guildId}`
 			);
 
 			const channelName = message.channel && "name" in message.channel ? message.channel.name || undefined : undefined;
 
-			await notificationService.sendNotification({
-				type: "introduction_bonus",
-				guildId,
-				userId: user.id,
-				userName: user.displayName || user.username || `User-${user.id}`,
-				points: introductionResult.points,
-				context: {
-					channelName,
-					sourceType: introductionResult.bonusType === "post" ? "post" : "reply",
-				},
-			});
+			try {
+				await notificationService.sendNotification({
+					type: "introduction_bonus",
+					guildId,
+					userId: user.id,
+					userName: user.displayName || user.username || `User-${user.id}`,
+					points: introductionResult.points,
+					context: {
+						channelName,
+						sourceType: introductionResult.bonusType === "post" ? "post" : "reply",
+					},
+				});
+				console.log(`[INTRO DEBUG] Introduction notification sent successfully, guild=${guildId}, user=${user.username}`);
+			} catch (error) {
+				console.error(`[INTRO DEBUG] Failed to send introduction notification: ${error}, guild=${guildId}, user=${user.username}`);
+			}
+		} else {
+			console.log(`[INTRO DEBUG] Not sending introduction notification: success=${introductionResult.success}, awarded=${introductionResult.awarded}, notificationService=${notificationService !== null}, guild=${guildId}, user=${user.username}`);
 		}
 
 		// Check for rank updates if any RP was awarded
