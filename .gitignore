@@ -10,3 +10,6 @@ backups/
 
 # Database exports
 *_export_*.json
+
+# Log files
+*.log

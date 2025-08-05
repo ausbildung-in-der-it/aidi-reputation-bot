@@ -21,7 +21,7 @@ echo "Fetching Docker logs from root@${DOMAIN}..."
 echo "Saving to: ${LOG_FILE}"
 
 # Connect to server and fetch Docker logs
-ssh root@${DOMAIN} "docker-compose logs bot --tail=1000" > "${LOG_FILE}" 2>&1
+ssh root@${DOMAIN} "docker logs aidi-reputation-bot --tail=1000" > "${LOG_FILE}" 2>&1
 
 if [ $? -eq 0 ]; then
     echo "✅ Docker logs successfully saved to ${LOG_FILE}"
