@@ -139,17 +139,17 @@ const commands = [
 		),
 	new SlashCommandBuilder()
 		.setName("create-invite")
-		.setDescription("Erstellt einen tracked Invite Link für RP-Belohnungen")
+		.setDescription("Erstellt einen Standard-Invite (10 Uses, 7 Tage) für den konfigurierten Channel")
 		.addChannelOption(option =>
 			option
 				.setName("channel")
-				.setDescription("Channel für den Invite (Standard: aktueller Channel)")
+				.setDescription("Channel für den Invite (nur für Admins, nutzt sonst Default-Channel)")
 				.setRequired(false)
 		)
 		.addIntegerOption(option =>
 			option
 				.setName("max_uses")
-				.setDescription("Maximale Anzahl Uses (Standard: 1)")
+				.setDescription("Maximale Anzahl Uses (nur für Admins, Standard: 10)")
 				.setRequired(false)
 				.setMinValue(1)
 				.setMaxValue(100)
@@ -157,7 +157,7 @@ const commands = [
 		.addIntegerOption(option =>
 			option
 				.setName("expire_days")
-				.setDescription("Gültigkeitsdauer in Tagen (Standard: 7)")
+				.setDescription("Gültigkeitsdauer in Tagen (nur für Admins, Standard: 7)")
 				.setRequired(false)
 				.setMinValue(1)
 				.setMaxValue(30)
@@ -202,6 +202,23 @@ const commands = [
 				.addUserOption(option =>
 					option.setName("user").setDescription("User dem die Belohnungen vergeben werden sollen").setRequired(true)
 				)
+		),
+	new SlashCommandBuilder()
+		.setName("set-invite-channel")
+		.setDescription("Verwaltet den Default-Invite-Channel (Admin-only)")
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName("set")
+				.setDescription("Setzt den Default-Channel für Invites")
+				.addChannelOption(option =>
+					option.setName("channel").setDescription("Der Channel für neue Invites").setRequired(true)
+				)
+		)
+		.addSubcommand(subcommand =>
+			subcommand.setName("remove").setDescription("Entfernt die Default-Channel Konfiguration")
+		)
+		.addSubcommand(subcommand =>
+			subcommand.setName("show").setDescription("Zeigt den aktuellen Default-Channel an")
 		),
 	notificationChannelCommand,
 ].map(command => command.toJSON());

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { inviteTrackingService } from "@/core/services/inviteTrackingService";
+import { inviteChannelService } from "@/core/services/inviteChannelService";
 import { manualReputationService } from "@/core/services/manualReputationService";
 import { reputationService } from "@/core/services/reputationService";
 import { handleCreateInviteCommand } from "@/bot/commands/createInvite";
@@ -8,8 +9,16 @@ import { handleDeleteInviteCommand } from "@/bot/commands/deleteInvite";
 import { handleManageInvitesCommand } from "@/bot/commands/manageInvites";
 import { onGuildMemberAdd } from "@/bot/events/onGuildMemberAdd";
 import { db } from "@/db/sqlite";
-import { createTestUser, createDiscordUser, generateGuildId, generateMessageId } from "../setup/testUtils";
-import { MessageFlags, ChannelType, PermissionFlagsBits, Collection } from "discord.js";
+import { createDiscordUser, generateGuildId, generateMessageId } from "../setup/testUtils";
+import { ChannelType, Collection } from "discord.js";
+
+// Mock notification service
+const mockSendNotification = vi.fn().mockResolvedValue(true);
+vi.mock("@/bot/services/discordNotificationService", () => ({
+	getDiscordNotificationService: vi.fn(() => ({
+		sendNotification: mockSendNotification
+	}))
+}));
 
 describe("Invite Tracking System", () => {
 	let guildId: string;
@@ -20,6 +29,7 @@ describe("Invite Tracking System", () => {
 		db.exec("DELETE FROM user_invites");
 		db.exec("DELETE FROM invite_joins");
 		db.exec("DELETE FROM reputation_events");
+		db.exec("DELETE FROM invite_channel_config");
 		
 		guildId = generateGuildId();
 		channelId = generateMessageId(); // Using as channel ID
@@ -27,6 +37,7 @@ describe("Invite Tracking System", () => {
 
 	afterEach(() => {
 		vi.clearAllMocks();
+		mockSendNotification.mockClear();
 	});
 
 	describe("Invite Creation", () => {
@@ -201,6 +212,8 @@ describe("Invite Tracking System", () => {
 				},
 				members: {
 					fetch: vi.fn().mockResolvedValue({
+						displayName: "Creator Display",
+						user: { username: "creator" },
 						send: vi.fn().mockResolvedValue(true)
 					})
 				}
@@ -208,6 +221,7 @@ describe("Invite Tracking System", () => {
 
 			const mockMember = {
 				guild: mockGuild,
+				displayName: "Joined User",
 				user: {
 					id: joinedUserId,
 					username: "testuser",
@@ -222,6 +236,66 @@ describe("Invite Tracking System", () => {
 			const pendingRewards = inviteTrackingService.getPendingRewards(guildId);
 			expect(pendingRewards).toHaveLength(1);
 			expect(pendingRewards[0].joined_user_id).toBe(joinedUserId);
+		});
+
+		it("should send notification when member joins via invite", async () => {
+			const creatorId = "creator_123";
+			const joinedUserId = "joined_456";
+			const inviteCode = "notify123";
+
+			// Create tracked invite
+			inviteTrackingService.createInvite({
+				guildId,
+				inviteCode,
+				creatorId,
+				channelId,
+				maxUses: 1,
+			});
+
+			// Mock Discord objects
+			const mockInvites = new Collection([
+				[inviteCode, { code: inviteCode, uses: 1 }]
+			]);
+			
+			const mockGuild = {
+				id: guildId,
+				invites: {
+					fetch: vi.fn().mockResolvedValue(mockInvites)
+				},
+				members: {
+					fetch: vi.fn().mockResolvedValue({
+						displayName: "Creator Display",
+						user: { username: "creator" },
+						send: vi.fn().mockResolvedValue(true)
+					})
+				}
+			};
+
+			const mockMember = {
+				guild: mockGuild,
+				displayName: "Joined User",
+				user: {
+					id: joinedUserId,
+					username: "testuser",
+					createdTimestamp: Date.now() - (30 * 24 * 60 * 60 * 1000) // 30 days old
+				}
+			};
+
+			// Process join event
+			await onGuildMemberAdd(mockMember as any);
+
+			// Should have sent notification
+			expect(mockSendNotification).toHaveBeenCalledWith({
+				type: "invite_join",
+				guildId,
+				userId: joinedUserId,
+				userName: "Joined User",
+				points: 0,
+				context: {
+					inviteCode: inviteCode,
+					inviteCreatorName: "Creator Display",
+				},
+			});
 		});
 	});
 
@@ -346,6 +420,14 @@ describe("Invite Tracking System", () => {
 	describe("Discord Command Integration", () => {
 		it("should handle create-invite command successfully", async () => {
 			const user = createDiscordUser("user_123");
+			
+			// Set up default channel configuration
+			inviteChannelService.setChannelConfig({
+				guildId,
+				channelId,
+				configuredBy: "admin_123",
+			});
+
 			const targetChannel = {
 				id: channelId,
 				type: ChannelType.GuildText,
@@ -356,17 +438,22 @@ describe("Invite Tracking System", () => {
 			};
 
 			const mockInteraction = {
-				guild: { id: guildId },
+				guild: { 
+					id: guildId,
+					channels: {
+						cache: {
+							get: vi.fn().mockReturnValue(targetChannel)
+						}
+					}
+				},
 				user: user,
 				channelId: channelId,
 				memberPermissions: {
 					has: vi.fn().mockReturnValue(false), // Not admin, so subject to limits
 				},
 				options: {
-					getChannel: vi.fn().mockReturnValue(targetChannel),
-					getInteger: vi.fn()
-						.mockReturnValueOnce(1) // max_uses
-						.mockReturnValueOnce(7), // expire_days
+					getChannel: vi.fn().mockReturnValue(null), // Regular user doesn't specify channel
+					getInteger: vi.fn().mockReturnValue(null), // Regular user can't override params
 				},
 				channel: targetChannel,
 				reply: vi.fn(),
@@ -450,7 +537,7 @@ describe("Invite Tracking System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("erfolgreich gelöscht"),
-				flags: 64, // MessageFlags.Ephemeral
+				flags: 64, // Ephemeral
 			});
 
 			// Verify invite was deactivated
@@ -529,7 +616,7 @@ describe("Invite Tracking System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Administrator-Berechtigung"),
-				flags: 64, // MessageFlags.Ephemeral
+				flags: 64, // Ephemeral
 			});
 		});
 
@@ -580,7 +667,7 @@ describe("Invite Tracking System", () => {
 
 			expect(mockInteraction.reply).toHaveBeenCalledWith({
 				content: expect.stringContaining("Invite-Belohnungen vergeben"),
-				flags: 64, // MessageFlags.Ephemeral
+				flags: 64, // Ephemeral
 			});
 
 			// Verify RP was awarded

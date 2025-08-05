@@ -12,6 +12,7 @@ import { handleCreateInviteCommand } from "@/bot/commands/createInvite";
 import { handleMyInvitesCommand } from "@/bot/commands/myInvites";
 import { handleDeleteInviteCommand } from "@/bot/commands/deleteInvite";
 import { handleManageInvitesCommand } from "@/bot/commands/manageInvites";
+import { handleSetInviteChannelCommand } from "@/bot/commands/setInviteChannel";
 import { safeReply } from "@/bot/utils/safeReply";
 
 export async function onInteractionCreate(interaction: Interaction) {
@@ -59,6 +60,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "manage-invites":
 				await handleManageInvitesCommand(interaction);
+				break;
+			case "set-invite-channel":
+				await handleSetInviteChannelCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);

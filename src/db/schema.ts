@@ -115,4 +115,13 @@ export function createTables(db: Database.Database): void {
       PRIMARY KEY (guild_id, invite_code, joined_user_id)
     );
   `);
+
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS invite_channel_config (
+      guild_id TEXT NOT NULL PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      configured_by TEXT NOT NULL,
+      configured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }

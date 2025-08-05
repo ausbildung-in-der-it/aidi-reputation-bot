@@ -243,7 +243,7 @@ export const inviteTrackingService = {
 		`);
 		const result = stmt.get(guildId, inviteCode) as { current_uses: number; max_uses: number } | undefined;
 		
-		if (!result) return true; // Consider non-existent invites as "at max"
+		if (!result) {return true;} // Consider non-existent invites as "at max"
 		return result.current_uses >= result.max_uses;
 	},
 };

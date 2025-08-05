@@ -1,7 +1,7 @@
 import { db } from "@/db/sqlite";
 
 export interface NotificationEvent {
-	type: "reputation_awarded" | "daily_bonus" | "introduction_bonus" | "trophy_given";
+	type: "reputation_awarded" | "daily_bonus" | "introduction_bonus" | "trophy_given" | "invite_join";
 	guildId: string;
 	userId: string;
 	userName: string;
@@ -11,6 +11,8 @@ export interface NotificationEvent {
 		recipientName?: string;
 		recipientId?: string;
 		sourceType?: "reaction" | "post" | "reply" | "daily";
+		inviteCode?: string;
+		inviteCreatorName?: string;
 	};
 }
 
@@ -71,6 +73,10 @@ export const notificationService = {
 
 	formatNotificationMessage: (event: NotificationEvent): string => {
 		switch (event.type) {
+			case "invite_join":
+				const creatorText = event.context?.inviteCreatorName ? ` über Einladung von **${event.context.inviteCreatorName}**` : "";
+				return `🎉 **${event.userName}** ist dem Server${creatorText} beigetreten!`;
+
 			case "trophy_given":
 				if (event.context?.recipientName) {
 					return `🏆 **${event.userName}** hat **${event.context.recipientName}** eine Trophäe spendiert (${event.points} RP)`;
