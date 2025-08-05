@@ -7,6 +7,7 @@ import { execute as handleNotificationChannelCommand } from "@/bot/commands/setN
 import { handleRateLimitsCommand } from "@/bot/commands/rateLimits";
 import { handleAwardRpCommand } from "@/bot/commands/awardRp";
 import { handleLeaderboardExclusionsCommand } from "@/bot/commands/leaderboardExclusions";
+import { handleReputationEventsCommand } from "@/bot/commands/reputationEvents";
 import { safeReply } from "@/bot/utils/safeReply";
 
 export async function onInteractionCreate(interaction: Interaction) {
@@ -39,6 +40,9 @@ export async function onInteractionCreate(interaction: Interaction) {
 				break;
 			case "leaderboard-exclusions":
 				await handleLeaderboardExclusionsCommand(interaction);
+				break;
+			case "reputation-events":
+				await handleReputationEventsCommand(interaction);
 				break;
 			default:
 				console.warn(`Unknown command: ${interaction.commandName}`);

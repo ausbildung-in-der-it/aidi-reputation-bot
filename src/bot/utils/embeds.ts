@@ -170,3 +170,109 @@ export function createAdminAwardEmbed(data: {
 
 	return embed;
 }
+
+export function createReputationEventsEmbed(
+	user: User, 
+	events: Array<{
+		message_id: string;
+		to_user_id: string;
+		from_user_id: string;
+		emoji: string;
+		amount: number;
+		created_at: string;
+		event_type: 'received' | 'given';
+	}>,
+	type: 'received' | 'given' | 'all'
+): EmbedBuilder {
+	const embed = new EmbedBuilder()
+		.setColor(0x9b59b6)
+		.setTitle("📊 Reputation Events")
+		.setThumbnail(user.displayAvatarURL())
+		.setTimestamp()
+		.setFooter({ text: "AIDI Reputation Bot" });
+
+	const typeText = type === 'received' ? 'erhalten' : type === 'given' ? 'vergeben' : 'alle';
+	embed.setDescription(`Reputation Events für ${user.displayName || user.username} (${typeText})`);
+
+	if (events.length === 0) {
+		embed.addFields([
+			{
+				name: "Keine Events",
+				value: `Es wurden keine Reputation Events gefunden.`,
+				inline: false,
+			},
+		]);
+		return embed;
+	}
+
+	// Group events by date for better readability
+	const groupedEvents: Record<string, typeof events> = {};
+	events.forEach(event => {
+		const date = new Date(event.created_at).toLocaleDateString('de-DE');
+		if (!groupedEvents[date]) {
+			groupedEvents[date] = [];
+		}
+		groupedEvents[date].push(event);
+	});
+
+	let fieldCount = 0;
+	const maxFields = 25; // Discord limit
+
+	for (const [date, dayEvents] of Object.entries(groupedEvents)) {
+		if (fieldCount >= maxFields - 1) {
+			break; // Leave space for summary field
+		}
+
+		const eventLines = dayEvents.slice(0, 10).map(event => { // Max 10 events per day to avoid field length issues
+			const time = new Date(event.created_at).toLocaleTimeString('de-DE', { 
+				hour: '2-digit', 
+				minute: '2-digit' 
+			});
+			
+			const eventIcon = event.event_type === 'received' ? '📥' : '📤';
+			const otherUserId = event.event_type === 'received' ? event.from_user_id : event.to_user_id;
+			const actionText = event.event_type === 'received' ? 'von' : 'an';
+			
+			return `${eventIcon} \`${time}\` ${event.emoji} **${event.amount}** RP ${actionText} <@${otherUserId}>`;
+		});
+
+		if (dayEvents.length > 10) {
+			eventLines.push(`... und ${dayEvents.length - 10} weitere Events`);
+		}
+
+		embed.addFields([
+			{
+				name: `📅 ${date} (${dayEvents.length} Events)`,
+				value: eventLines.join('\n'),
+				inline: false,
+			},
+		]);
+
+		fieldCount++;
+	}
+
+	// Add summary field
+	const receivedCount = events.filter(e => e.event_type === 'received').length;
+	const givenCount = events.filter(e => e.event_type === 'given').length;
+	const totalAmount = events.reduce((sum, event) => {
+		return event.event_type === 'received' ? sum + event.amount : sum;
+	}, 0);
+
+	let summaryText = `**Angezeigt:** ${events.length} Events`;
+	if (type === 'all') {
+		summaryText += `\n📥 **Erhalten:** ${receivedCount} Events\n📤 **Vergeben:** ${givenCount} Events`;
+	}
+	if (type !== 'given') {
+		summaryText += `\n💰 **Gesamt RP erhalten:** ${totalAmount}`;
+	}
+
+	embed.addFields([
+		{
+			name: "📈 Zusammenfassung",
+			value: summaryText,
+			inline: false,
+		},
+	]);
+
+	return embed;
+}

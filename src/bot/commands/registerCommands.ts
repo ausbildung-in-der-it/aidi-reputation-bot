@@ -112,6 +112,31 @@ const commands = [
 		.addSubcommand(subcommand =>
 			subcommand.setName("list").setDescription("Zeigt alle vom Leaderboard ausgeschlossenen Rollen an")
 		),
+	new SlashCommandBuilder()
+		.setName("reputation-events")
+		.setDescription("Zeigt Reputation Events eines Users an (Admin-only)")
+		.addUserOption(option =>
+			option.setName("user").setDescription("Der User dessen Events angezeigt werden sollen").setRequired(true)
+		)
+		.addIntegerOption(option =>
+			option
+				.setName("limit")
+				.setDescription("Anzahl der Events (Standard: 20)")
+				.setRequired(false)
+				.setMinValue(1)
+				.setMaxValue(100)
+		)
+		.addStringOption(option =>
+			option
+				.setName("type")
+				.setDescription("Art der Events")
+				.setRequired(false)
+				.addChoices(
+					{ name: "Alle Events", value: "all" },
+					{ name: "Nur erhaltene RP", value: "received" },
+					{ name: "Nur vergebene RP", value: "given" }
+				)
+		),
 	notificationChannelCommand,
 ].map(command => command.toJSON());
 

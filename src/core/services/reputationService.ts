@@ -92,4 +92,66 @@ export const reputationService = {
         `);
 		return stmt.all(guildId) as { userId: string; totalRp: number }[];
 	},
+
+	getUserReputationEvents: (
+		guildId: string, 
+		userId: string, 
+		limit: number = 20, 
+		type: 'received' | 'given' | 'all' = 'all'
+	): Array<{
+		message_id: string;
+		to_user_id: string;
+		from_user_id: string;
+		emoji: string;
+		amount: number;
+		created_at: string;
+		event_type: 'received' | 'given';
+	}> => {
+		let query = '';
+		let params: any[] = [guildId];
+
+		if (type === 'received') {
+			query = `
+				SELECT message_id, to_user_id, from_user_id, emoji, amount, created_at, 'received' as event_type
+				FROM reputation_events
+				WHERE guild_id = ? AND to_user_id = ?
+				ORDER BY created_at DESC
+				LIMIT ?
+			`;
+			params.push(userId, limit);
+		} else if (type === 'given') {
+			query = `
+				SELECT message_id, to_user_id, from_user_id, emoji, amount, created_at, 'given' as event_type
+				FROM reputation_events
+				WHERE guild_id = ? AND from_user_id = ?
+				ORDER BY created_at DESC
+				LIMIT ?
+			`;
+			params.push(userId, limit);
+		} else {
+			query = `
+				SELECT message_id, to_user_id, from_user_id, emoji, amount, created_at,
+					CASE 
+						WHEN to_user_id = ? THEN 'received'
+						ELSE 'given'
+					END as event_type
+				FROM reputation_events
+				WHERE guild_id = ? AND (to_user_id = ? OR from_user_id = ?)
+				ORDER BY created_at DESC
+				LIMIT ?
+			`;
+			params = [userId, guildId, userId, userId, limit];
+		}
+
+		const stmt = db.prepare(query);
+		return stmt.all(...params) as Array<{
+			message_id: string;
+			to_user_id: string;
+			from_user_id: string;
+			emoji: string;
+			amount: number;
+			created_at: string;
+			event_type: 'received' | 'given';
+		}>;
+	},
 };
