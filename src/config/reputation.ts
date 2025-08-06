@@ -34,6 +34,7 @@ export interface IntroductionConfig {
 	postBonus: number;
 	replyBonus: number;
 	maxRepliesPerUser: number;
+	replyWindowHours: number;
 }
 
 export const INTRODUCTION_CONFIG: IntroductionConfig = {
@@ -41,6 +42,7 @@ export const INTRODUCTION_CONFIG: IntroductionConfig = {
 	postBonus: 5,
 	replyBonus: 2,
 	maxRepliesPerUser: 5,
+	replyWindowHours: 24,
 };
 
 export function getCurrentDateInTimezone(timezone: string): string {

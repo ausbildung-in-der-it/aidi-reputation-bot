@@ -49,12 +49,21 @@ client.once("ready", async () => {
 		() => {
 			try {
 				const { rateLimitService } = require("@/core/services/rateLimitService");
-				const cleaned = rateLimitService.cleanupOldEntries();
-				if (cleaned > 0) {
-					console.log(`Cleaned up ${cleaned} old rate limit entries`);
+				const { introductionReplyService } = require("@/core/services/introductionReplyService");
+				
+				// Clean rate limits
+				const cleanedRateLimits = rateLimitService.cleanupOldEntries();
+				if (cleanedRateLimits > 0) {
+					console.log(`Cleaned up ${cleanedRateLimits} old rate limit entries`);
+				}
+				
+				// Clean introduction reply tracking (keep 7 days for audit)
+				const cleanedReplies = introductionReplyService.cleanupOldEntries(7);
+				if (cleanedReplies > 0) {
+					console.log(`Cleaned up ${cleanedReplies} old introduction reply entries`);
 				}
 			} catch (error) {
-				console.error("Error during rate limit cleanup:", error);
+				console.error("Error during cleanup:", error);
 			}
 		},
 		6 * 60 * 60 * 1000

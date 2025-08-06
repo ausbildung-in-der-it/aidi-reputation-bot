@@ -14,6 +14,7 @@ vi.mock("@/config/reputation", () => ({
 		postBonus: 5,
 		replyBonus: 2,
 		maxRepliesPerUser: 5,
+		replyWindowHours: 24,
 	},
 }));
 
@@ -304,7 +305,7 @@ describe("Introduction Channel System", () => {
 			expect(result.success).toBe(true);
 			expect(result.awarded).toBe(false);
 			expect(result.points).toBe(0);
-			expect(result.reason).toBe("Maximum reply limit reached (5)");
+			expect(result.reason).toBe("Daily reply limit reached (5/24h)");
 			expect(result.replyLimitInfo?.repliesUsed).toBe(5);
 			expect(result.replyLimitInfo?.remainingReplies).toBe(0);
 
@@ -620,6 +621,95 @@ describe("Introduction Channel System", () => {
 			// User should have 5 RP in each guild
 			expect(reputationService.getUserReputation(guildId, user.id)).toBe(5);
 			expect(reputationService.getUserReputation(guild2Id, user.id)).toBe(5);
+		});
+	});
+
+	describe("Daily Reply Limit Reset", () => {
+		beforeEach(async () => {
+			// Configure introduction channel for each test
+			await configureIntroductionChannel({
+				guildId,
+				channelId,
+				configuredBy: adminUserId,
+			});
+		});
+
+		it("should reset reply limits after 24 hours", async () => {
+			const replier = createTestUser("replier_123", {
+				username: "replier",
+				displayName: "Replier",
+			});
+
+			// Track 5 replies (max limit)
+			const now = new Date();
+			for (let i = 0; i < 5; i++) {
+				introductionReplyService.trackReply(guildId, replier.id, `original_${i}`);
+			}
+
+			// Check that limit is reached
+			const limitCheck1 = introductionReplyService.checkReplyLimits(guildId, replier.id, "new_message");
+			expect(limitCheck1.canReply).toBe(false);
+			expect(limitCheck1.repliesUsed).toBe(5);
+			expect(limitCheck1.reason).toContain("Daily reply limit reached");
+
+			// Manually update one reply to be 25 hours old
+			const oldTimestamp = new Date(now.getTime() - 25 * 60 * 60 * 1000).toISOString();
+			db.prepare(`
+				UPDATE introduction_reply_tracking 
+				SET replied_at = ? 
+				WHERE guild_id = ? AND user_id = ? AND original_message_id = ?
+			`).run(oldTimestamp, guildId, replier.id, "original_0");
+
+			// Check that user can now reply again (4/5 used in last 24h)
+			const limitCheck2 = introductionReplyService.checkReplyLimits(guildId, replier.id, "new_message");
+			expect(limitCheck2.canReply).toBe(true);
+			expect(limitCheck2.repliesUsed).toBe(4);
+
+			// Update all replies to be old
+			db.prepare(`
+				UPDATE introduction_reply_tracking 
+				SET replied_at = ? 
+				WHERE guild_id = ? AND user_id = ?
+			`).run(oldTimestamp, guildId, replier.id);
+
+			// Check that limits are fully reset
+			const limitCheck3 = introductionReplyService.checkReplyLimits(guildId, replier.id, "new_message");
+			expect(limitCheck3.canReply).toBe(true);
+			expect(limitCheck3.repliesUsed).toBe(0);
+		});
+
+		it("should only count replies within the time window", async () => {
+			const replier = createTestUser("replier_456", {
+				username: "replier2",
+				displayName: "Replier 2",
+			});
+
+			// Add some old replies (should not count)
+			const oldTimestamp = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+			db.prepare(`
+				INSERT INTO introduction_reply_tracking (guild_id, user_id, original_message_id, replied_at)
+				VALUES (?, ?, ?, ?)
+			`).run(guildId, replier.id, "old_message_1", oldTimestamp);
+			db.prepare(`
+				INSERT INTO introduction_reply_tracking (guild_id, user_id, original_message_id, replied_at)
+				VALUES (?, ?, ?, ?)
+			`).run(guildId, replier.id, "old_message_2", oldTimestamp);
+
+			// Check that old replies don't count
+			const limitCheck = introductionReplyService.checkReplyLimits(guildId, replier.id, "new_message");
+			expect(limitCheck.canReply).toBe(true);
+			expect(limitCheck.repliesUsed).toBe(0);
+			expect(limitCheck.maxReplies).toBe(5);
+
+			// Add recent replies
+			introductionReplyService.trackReply(guildId, replier.id, "recent_1");
+			introductionReplyService.trackReply(guildId, replier.id, "recent_2");
+
+			// Check that only recent replies count
+			const limitCheck2 = introductionReplyService.checkReplyLimits(guildId, replier.id, "new_message");
+			expect(limitCheck2.canReply).toBe(true);
+			expect(limitCheck2.repliesUsed).toBe(2);
+			expect(limitCheck2.maxReplies).toBe(5);
 		});
 	});
 });
