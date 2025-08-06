@@ -66,7 +66,7 @@ describe("Invite Tracking System", () => {
 			expect(invite?.channel_id).toBe(channelId);
 			expect(invite?.max_uses).toBe(1);
 			expect(invite?.current_uses).toBe(0);
-			expect(invite?.active).toBe(1); // SQLite stores boolean as INTEGER
+			expect(invite?.active).toBe(true); // Now properly converted to boolean
 		});
 
 		it("should enforce rate limits for active invites", () => {
@@ -138,7 +138,7 @@ describe("Invite Tracking System", () => {
 			expect(pendingRewards[0].creator_id).toBe(creatorId);
 			expect(pendingRewards[0].joined_user_id).toBe(joinedUserId);
 			expect(pendingRewards[0].invite_code).toBe(inviteCode);
-			expect(pendingRewards[0].rewarded).toBe(0); // SQLite stores boolean as INTEGER
+			expect(pendingRewards[0].rewarded).toBe(false); // Now properly converted to boolean
 		});
 
 		it("should increment usage counter", () => {

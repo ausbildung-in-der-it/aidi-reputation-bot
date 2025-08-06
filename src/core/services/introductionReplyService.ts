@@ -26,8 +26,9 @@ export const introductionReplyService = {
             FROM introduction_reply_tracking
             WHERE guild_id = ? AND user_id = ? AND original_message_id = ?
         `);
-		const specificReplyResult = specificReplyStmt.get(guildId, userId, originalMessageId) as { count: number };
-		const alreadyRepliedToThisPost = specificReplyResult.count > 0;
+		const specificReplyResult = specificReplyStmt.get(guildId, userId, originalMessageId) as { count: number | bigint };
+		const specificReplyCount = Number(specificReplyResult.count);
+		const alreadyRepliedToThisPost = specificReplyCount > 0;
 
 		if (alreadyRepliedToThisPost) {
 			return {
@@ -45,8 +46,8 @@ export const introductionReplyService = {
             FROM introduction_reply_tracking
             WHERE guild_id = ? AND user_id = ?
         `);
-		const totalRepliesResult = totalRepliesStmt.get(guildId, userId) as { count: number };
-		const repliesUsed = totalRepliesResult.count;
+		const totalRepliesResult = totalRepliesStmt.get(guildId, userId) as { count: number | bigint };
+		const repliesUsed = Number(totalRepliesResult.count);
 
 		if (repliesUsed >= maxReplies) {
 			return {

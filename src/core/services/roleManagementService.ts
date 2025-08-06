@@ -31,7 +31,7 @@ export const roleManagementService = {
 		return results.map(result => ({
 			guildId: result.guild_id,
 			rankName: result.rank_name,
-			requiredRp: result.required_rp,
+			requiredRp: Number(result.required_rp),
 			roleId: result.role_id,
 			createdAt: result.created_at,
 		}));
@@ -151,7 +151,7 @@ export const roleManagementService = {
             FROM reputation_ranks
             WHERE guild_id = ? AND rank_name = ?
         `);
-		const result = stmt.get(guildId, rankName) as { count: number };
-		return result.count > 0;
+		const result = stmt.get(guildId, rankName) as { count: number | bigint };
+		return Number(result.count) > 0;
 	},
 };

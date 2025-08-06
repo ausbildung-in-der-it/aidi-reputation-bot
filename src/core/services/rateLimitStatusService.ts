@@ -67,7 +67,7 @@ export const rateLimitStatusService = {
 		const introductionReplyStatus: IntroductionReplyStatus = {
 			used: replyCheck.repliesUsed,
 			limit: replyCheck.maxReplies,
-			remaining: Math.max(0, replyCheck.maxReplies - replyCheck.repliesUsed),
+			remaining: Math.max(0, Number(replyCheck.maxReplies) - Number(replyCheck.repliesUsed)),
 		};
 
 		return {

@@ -24,9 +24,9 @@ export const dailyBonusService = {
             FROM daily_bonus_tracking
             WHERE guild_id = ? AND user_id = ? AND bonus_date = ?
         `);
-		const result = stmt.get(guildId, userId, bonusDate) as { count: number };
+		const result = stmt.get(guildId, userId, bonusDate) as { count: number | bigint };
 
-		const alreadyReceived = result.count > 0;
+		const alreadyReceived = Number(result.count) > 0;
 
 		return {
 			canReceive: !alreadyReceived,

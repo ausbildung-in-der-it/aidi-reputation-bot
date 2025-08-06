@@ -19,13 +19,14 @@ export const rateLimitService = {
             FROM reputation_rate_limits
             WHERE guild_id = ? AND from_user_id = ? AND awarded_at > ?
         `);
-		const dailyResult = dailyCountStmt.get(guildId, fromUserId, windowStart) as { count: number };
+		const dailyResult = dailyCountStmt.get(guildId, fromUserId, windowStart) as { count: number | bigint };
+		const dailyCount = Number(dailyResult.count);
 
-		if (dailyResult.count >= dailyLimit) {
+		if (dailyCount >= dailyLimit) {
 			return {
 				allowed: false,
 				reason: `Daily limit reached (${dailyLimit}/${windowHours}h)`,
-				dailyUsed: dailyResult.count,
+				dailyUsed: dailyCount,
 				dailyLimit: dailyLimit,
 			};
 		}
@@ -36,20 +37,21 @@ export const rateLimitService = {
             FROM reputation_rate_limits
             WHERE guild_id = ? AND from_user_id = ? AND to_user_id = ? AND awarded_at > ?
         `);
-		const recipientResult = recipientCountStmt.get(guildId, fromUserId, toUserId, windowStart) as { count: number };
+		const recipientResult = recipientCountStmt.get(guildId, fromUserId, toUserId, windowStart) as { count: number | bigint };
+		const recipientCount = Number(recipientResult.count);
 
-		if (recipientResult.count >= perRecipientLimit) {
+		if (recipientCount >= perRecipientLimit) {
 			return {
 				allowed: false,
 				reason: `Already awarded to this user in ${windowHours}h window`,
-				dailyUsed: dailyResult.count,
+				dailyUsed: dailyCount,
 				dailyLimit: dailyLimit,
 			};
 		}
 
 		return {
 			allowed: true,
-			dailyUsed: dailyResult.count,
+			dailyUsed: dailyCount,
 			dailyLimit: dailyLimit,
 		};
 	},

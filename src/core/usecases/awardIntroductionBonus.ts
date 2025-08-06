@@ -168,7 +168,7 @@ function handleReplyBonus(input: IntroductionBonusInput): IntroductionBonusResul
 			replyLimitInfo: {
 				repliesUsed: limitCheck.repliesUsed,
 				maxReplies: limitCheck.maxReplies,
-				remainingReplies: Math.max(0, limitCheck.maxReplies - limitCheck.repliesUsed),
+				remainingReplies: Math.max(0, Number(limitCheck.maxReplies) - Number(limitCheck.repliesUsed)),
 			},
 		};
 	}

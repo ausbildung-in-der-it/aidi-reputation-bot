@@ -58,7 +58,13 @@ export const inviteTrackingService = {
 			WHERE guild_id = ? AND creator_id = ? AND active = TRUE
 			ORDER BY created_at DESC
 		`);
-		return stmt.all(guildId, userId) as UserInvite[];
+		const results = stmt.all(guildId, userId) as any[];
+		return results.map(r => ({
+			...r,
+			max_uses: Number(r.max_uses),
+			current_uses: Number(r.current_uses),
+			active: Boolean(r.active)
+		}));
 	},
 
 	getActiveInviteCount: (guildId: string, userId: string): number => {
@@ -66,8 +72,8 @@ export const inviteTrackingService = {
 			SELECT COUNT(*) as count FROM user_invites
 			WHERE guild_id = ? AND creator_id = ? AND active = TRUE
 		`);
-		const result = stmt.get(guildId, userId) as { count: number };
-		return result.count;
+		const result = stmt.get(guildId, userId) as { count: number | bigint };
+		return Number(result.count);
 	},
 
 	getInviteByCode: (guildId: string, inviteCode: string): UserInvite | null => {
@@ -75,7 +81,14 @@ export const inviteTrackingService = {
 			SELECT * FROM user_invites
 			WHERE guild_id = ? AND invite_code = ? AND active = TRUE
 		`);
-		return (stmt.get(guildId, inviteCode) as UserInvite) || null;
+		const result = stmt.get(guildId, inviteCode) as any;
+		if (!result) return null;
+		return {
+			...result,
+			max_uses: Number(result.max_uses),
+			current_uses: Number(result.current_uses),
+			active: Boolean(result.active)
+		};
 	},
 
 	incrementInviteUse: (guildId: string, inviteCode: string): boolean => {
@@ -158,7 +171,11 @@ export const inviteTrackingService = {
 		query += ` ORDER BY joined_at DESC`;
 
 		const stmt = db.prepare(query);
-		return stmt.all(...params) as InviteJoin[];
+		const results = stmt.all(...params) as any[];
+		return results.map(r => ({
+			...r,
+			rewarded: Boolean(r.rewarded)
+		}));
 	},
 
 	markAsRewarded: (guildId: string, inviteCode: string, joinedUserId: string): boolean => {
@@ -188,19 +205,19 @@ export const inviteTrackingService = {
 			SELECT COUNT(*) as count FROM invite_joins
 			WHERE guild_id = ? AND creator_id = ?
 		`);
-		const totalJoins = (totalJoinsStmt.get(guildId, userId) as { count: number }).count;
+		const totalJoins = Number((totalJoinsStmt.get(guildId, userId) as { count: number | bigint }).count);
 
 		const pendingRewardsStmt = db.prepare(`
 			SELECT COUNT(*) as count FROM invite_joins
 			WHERE guild_id = ? AND creator_id = ? AND rewarded = FALSE
 		`);
-		const pendingRewards = (pendingRewardsStmt.get(guildId, userId) as { count: number }).count;
+		const pendingRewards = Number((pendingRewardsStmt.get(guildId, userId) as { count: number | bigint }).count);
 
 		const totalRewardsStmt = db.prepare(`
 			SELECT COUNT(*) as count FROM invite_joins
 			WHERE guild_id = ? AND creator_id = ? AND rewarded = TRUE
 		`);
-		const totalRewards = (totalRewardsStmt.get(guildId, userId) as { count: number }).count;
+		const totalRewards = Number((totalRewardsStmt.get(guildId, userId) as { count: number | bigint }).count);
 
 		return {
 			activeInvites,
@@ -216,7 +233,13 @@ export const inviteTrackingService = {
 			WHERE guild_id = ? AND active = TRUE
 			ORDER BY created_at DESC
 		`);
-		return stmt.all(guildId) as UserInvite[];
+		const results = stmt.all(guildId) as any[];
+		return results.map(r => ({
+			...r,
+			max_uses: Number(r.max_uses),
+			current_uses: Number(r.current_uses),
+			active: Boolean(r.active)
+		}));
 	},
 
 	cleanupExpiredInvites: (guildId: string): number => {
@@ -241,10 +264,10 @@ export const inviteTrackingService = {
 			SELECT current_uses, max_uses FROM user_invites
 			WHERE guild_id = ? AND invite_code = ? AND active = TRUE
 		`);
-		const result = stmt.get(guildId, inviteCode) as { current_uses: number; max_uses: number } | undefined;
+		const result = stmt.get(guildId, inviteCode) as { current_uses: number | bigint; max_uses: number | bigint } | undefined;
 		
 		if (!result) {return true;} // Consider non-existent invites as "at max"
-		return result.current_uses >= result.max_uses;
+		return Number(result.current_uses) >= Number(result.max_uses);
 	},
 
 	hasUserBeenRewardedBefore: (guildId: string, creatorId: string, joinedUserId: string): boolean => {

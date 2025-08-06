@@ -7,8 +7,8 @@ export const reputationService = {
             FROM reputation_events
             WHERE guild_id = ? AND to_user_id = ?
         `);
-		const result = stmt.get(guildId, userId) as { total: number | null };
-		return result?.total || 0;
+		const result = stmt.get(guildId, userId) as { total: number | bigint | null };
+		return Number(result?.total || 0);
 	},
 
 	getGuildLeaderboard: (guildId: string, limit: number = 10) => {
@@ -20,7 +20,8 @@ export const reputationService = {
             ORDER BY total DESC
             LIMIT ?
         `);
-		return stmt.all(guildId, limit) as { to_user_id: string; total: number }[];
+		const results = stmt.all(guildId, limit) as { to_user_id: string; total: number | bigint }[];
+		return results.map(r => ({ to_user_id: r.to_user_id, total: Number(r.total) }));
 	},
 
 	getGuildLeaderboardWithExclusions: (guildId: string, limit: number = 10, excludedRoleIds: string[]) => {
@@ -77,8 +78,8 @@ export const reputationService = {
             FROM reputation_events
             WHERE guild_id = ? AND to_user_id = ? AND emoji IN (${placeholders})
         `);
-		const result = stmt.get(guildId, userId, ...emojis) as { count: number };
-		return result.count > 0;
+		const result = stmt.get(guildId, userId, ...emojis) as { count: number | bigint };
+		return Number(result.count) > 0;
 	},
 
 	getAllUsersWithRP: (guildId: string): { userId: string; totalRp: number }[] => {

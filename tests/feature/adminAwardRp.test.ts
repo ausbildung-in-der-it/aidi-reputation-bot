@@ -109,7 +109,7 @@ describe("Admin RP Award System", () => {
 			const event = stmt.get(testGuildId, "user_123", "admin_456", "admin_award");
 
 			expect(event).toBeTruthy();
-			expect((event as any).amount).toBe(25);
+			expect(Number((event as any).amount)).toBe(25);
 		});
 	});
 

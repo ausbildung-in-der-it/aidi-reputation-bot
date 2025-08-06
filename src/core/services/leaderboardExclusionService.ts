@@ -51,8 +51,8 @@ export const leaderboardExclusionService = {
 				FROM leaderboard_excluded_roles
 				WHERE guild_id = ? AND role_id = ?
 			`);
-			const result = stmt.get(guildId, roleId) as { count: number };
-			return result.count > 0;
+			const result = stmt.get(guildId, roleId) as { count: number | bigint };
+			return Number(result.count) > 0;
 		} catch (error) {
 			console.error("Error checking if role is excluded:", error);
 			return false;
