@@ -1,6 +1,7 @@
-import { Guild } from "discord.js";
+import { Guild, PermissionFlagsBits } from "discord.js";
 import { roleManagementService } from "@/core/services/roleManagementService";
 import { reputationService } from "@/core/services/reputationService";
+import { logger } from "@/core/services/loggingService";
 
 export interface RoleUpdateResult {
 	success: boolean;
@@ -8,6 +9,7 @@ export interface RoleUpdateResult {
 	previousRole?: string;
 	newRole?: string;
 	error?: string;
+	errorType?: "permission" | "hierarchy" | "not_found" | "unknown";
 }
 
 export const discordRoleService = {
@@ -16,13 +18,37 @@ export const discordRoleService = {
 	 */
 	updateUserRank: async (guild: Guild, userId: string, currentRp: number): Promise<RoleUpdateResult> => {
 		try {
+			// Check if bot has ManageRoles permission
+			const botMember = guild.members.me;
+			if (!botMember) {
+				logger.error("Bot member not found in guild", { guildId: guild.id });
+				return {
+					success: false,
+					updated: false,
+					error: "Bot member not found in guild",
+					errorType: "not_found",
+				};
+			}
+
+			if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+				logger.error("Bot lacks ManageRoles permission", { guildId: guild.id });
+				return {
+					success: false,
+					updated: false,
+					error: "Bot lacks ManageRoles permission",
+					errorType: "permission",
+				};
+			}
+
 			// Get the member
 			const member = await guild.members.fetch(userId).catch(() => null);
 			if (!member) {
+				logger.debug("Member not found in guild", { guildId: guild.id, userId });
 				return {
 					success: false,
 					updated: false,
 					error: "Member not found in guild",
+					errorType: "not_found",
 				};
 			}
 
@@ -42,6 +68,11 @@ export const discordRoleService = {
 
 			// If user should have a specific role and already has that exact role, no update needed
 			if (shouldHaveRole && currentlyHasRole && newRank.roleId === currentRankRole.id) {
+				logger.debug("User already has correct role", { 
+					guildId: guild.id, 
+					userId, 
+					roleId: currentRankRole.id 
+				});
 				return {
 					success: true,
 					updated: false,
@@ -52,6 +83,7 @@ export const discordRoleService = {
 
 			// If user should have no role and currently has no reputation role, no update needed
 			if (!shouldHaveRole && !currentlyHasRole) {
+				logger.debug("User has no role and needs no role", { guildId: guild.id, userId });
 				return {
 					success: true,
 					updated: false,
@@ -62,22 +94,82 @@ export const discordRoleService = {
 
 			// Remove current reputation role if exists
 			if (currentRankRole) {
+				// Check if bot can manage this role
+				if (!discordRoleService.canBotManageRole(guild, currentRankRole.id)) {
+					logger.error("Bot cannot manage role (hierarchy issue)", { 
+						guildId: guild.id, 
+						userId, 
+						roleId: currentRankRole.id,
+						details: { roleName: currentRankRole.name }
+					});
+					return {
+						success: false,
+						updated: false,
+						error: `Bot cannot manage role '${currentRankRole.name}' - check role hierarchy`,
+						errorType: "hierarchy",
+					};
+				}
 				await member.roles.remove(currentRankRole.id, "Reputation rank update");
+				logger.info("Removed role from user", { 
+					guildId: guild.id, 
+					userId, 
+					roleId: currentRankRole.id,
+					details: { roleName: currentRankRole.name }
+				});
 			}
 
 			// Add new reputation role if user qualifies for one
 			if (newRank) {
 				const newRole = guild.roles.cache.get(newRank.roleId);
-				if (newRole) {
-					await member.roles.add(newRole.id, "Reputation rank promotion");
-				} else {
+				if (!newRole) {
+					logger.error("Role not found in guild", { 
+						guildId: guild.id, 
+						roleId: newRank.roleId 
+					});
 					return {
 						success: false,
 						updated: false,
 						error: `Role ${newRank.roleId} not found in guild`,
+						errorType: "not_found",
 					};
 				}
+				
+				// Check if bot can manage this role
+				if (!discordRoleService.canBotManageRole(guild, newRole.id)) {
+					logger.error("Bot cannot manage role (hierarchy issue)", { 
+						guildId: guild.id, 
+						userId, 
+						roleId: newRole.id,
+						details: { roleName: newRole.name }
+					});
+					return {
+						success: false,
+						updated: false,
+						error: `Bot cannot manage role '${newRole.name}' - check role hierarchy`,
+						errorType: "hierarchy",
+					};
+				}
+				
+				await member.roles.add(newRole.id, "Reputation rank promotion");
+				logger.info("Added role to user", { 
+					guildId: guild.id, 
+					userId, 
+					roleId: newRole.id,
+					details: { roleName: newRole.name, rp: currentRp }
+				});
 			}
+
+			logger.roleOperation(
+				"sync",
+				true,
+				{
+					guildId: guild.id,
+					userId,
+					roleId: newRank?.roleId,
+					roleName: newRank ? guild.roles.cache.get(newRank.roleId)?.name : undefined,
+					reason: `RP: ${currentRp}`,
+				}
+			);
 
 			return {
 				success: true,
@@ -86,11 +178,16 @@ export const discordRoleService = {
 				newRole: newRank ? guild.roles.cache.get(newRank.roleId)?.name : undefined,
 			};
 		} catch (error) {
-			console.error("Error updating user rank:", error);
+			logger.error("Error updating user rank", { 
+				guildId: guild.id, 
+				userId, 
+				error 
+			});
 			return {
 				success: false,
 				updated: false,
 				error: error instanceof Error ? error.message : "Unknown error",
+				errorType: "unknown",
 			};
 		}
 	},
@@ -98,16 +195,28 @@ export const discordRoleService = {
 	/**
 	 * Sync all users' ranks in a guild (useful for initial setup or fixing desync)
 	 */
-	syncAllUserRanks: async (guild: Guild): Promise<{ success: number; failed: number }> => {
+	syncAllUserRanks: async (guild: Guild): Promise<{ success: number; failed: number; errors: Map<string, string> }> => {
 		let success = 0;
 		let failed = 0;
+		const errors = new Map<string, string>();
 
 		try {
-			console.log(`Starting rank sync for guild ${guild.id}...`);
+			logger.info("Starting rank sync", { guildId: guild.id });
+
+			// Check bot permissions first
+			const botMember = guild.members.me;
+			if (!botMember?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+				logger.error("Bot lacks ManageRoles permission for sync", { guildId: guild.id });
+				errors.set("permission", "Bot lacks ManageRoles permission");
+				return { success: 0, failed: 0, errors };
+			}
 
 			// Get all users with RP in this guild
 			const usersWithRP = reputationService.getAllUsersWithRP(guild.id);
-			console.log(`Found ${usersWithRP.length} users with RP to sync`);
+			logger.info(`Found users with RP to sync`, { 
+				guildId: guild.id, 
+				details: { count: usersWithRP.length } 
+			});
 
 			// Update each user's rank
 			for (const userRp of usersWithRP) {
@@ -117,45 +226,101 @@ export const discordRoleService = {
 					if (result.success) {
 						success++;
 						if (result.updated) {
-							console.log(
-								`Updated rank for user ${userRp.userId}: ${result.previousRole || "None"} → ${result.newRole || "None"} (${userRp.totalRp} RP)`
+							logger.info(
+								`Updated rank for user`,
+								{ 
+									guildId: guild.id,
+									userId: userRp.userId,
+									details: {
+										previousRole: result.previousRole || "None",
+										newRole: result.newRole || "None",
+										rp: userRp.totalRp
+									}
+								}
 							);
 						}
 					} else {
 						failed++;
-						console.warn(`Failed to update rank for user ${userRp.userId}: ${result.error}`);
+						if (result.errorType) {
+							const errorKey = `${result.errorType}_${userRp.userId}`;
+							errors.set(errorKey, result.error || "Unknown error");
+						}
+						logger.warn(`Failed to update rank for user`, {
+							guildId: guild.id,
+							userId: userRp.userId,
+							details: { 
+								error: result.error,
+								errorType: result.errorType 
+							}
+						});
 					}
 				} catch (userError) {
 					failed++;
-					console.error(`Error updating rank for user ${userRp.userId}:`, userError);
+					errors.set(`unknown_${userRp.userId}`, "Unexpected error");
+					logger.error(`Error updating rank for user`, {
+						guildId: guild.id,
+						userId: userRp.userId,
+						error: userError
+					});
 				}
 			}
 
-			console.log(`Rank sync completed: ${success} success, ${failed} failed`);
+			logger.info(`Rank sync completed`, { 
+				guildId: guild.id, 
+				details: { success, failed } 
+			});
 		} catch (error) {
-			console.error("Error syncing user ranks:", error);
+			logger.error("Error syncing user ranks", { guildId: guild.id, error });
 		}
 
-		return { success, failed };
+		return { success, failed, errors };
 	},
 
 	/**
-	 * Validate that all configured rank roles exist in the guild
+	 * Check if bot can manage a specific role (hierarchy check)
 	 */
-	validateRankRoles: (guild: Guild): { valid: string[]; invalid: string[] } => {
+	canBotManageRole: (guild: Guild, roleId: string): boolean => {
+		const botMember = guild.members.me;
+		if (!botMember) {return false;}
+
+		const role = guild.roles.cache.get(roleId);
+		if (!role) {return false;}
+
+		// Bot's highest role position
+		const botHighestRole = botMember.roles.highest;
+		
+		// Bot can only manage roles below its highest role
+		return botHighestRole.position > role.position;
+	},
+
+	/**
+	 * Validate that all configured rank roles exist in the guild and can be managed
+	 */
+	validateRankRoles: (guild: Guild): { 
+		valid: string[]; 
+		invalid: string[]; 
+		unmanageable: string[];
+		details: Map<string, string>;
+	} => {
 		const ranks = roleManagementService.getRanksForGuild(guild.id);
 		const valid: string[] = [];
 		const invalid: string[] = [];
+		const unmanageable: string[] = [];
+		const details = new Map<string, string>();
 
 		for (const rank of ranks) {
 			const role = guild.roles.cache.get(rank.roleId);
-			if (role) {
-				valid.push(rank.rankName);
-			} else {
+			if (!role) {
 				invalid.push(rank.rankName);
+				details.set(rank.rankName, "Role not found in guild");
+			} else if (!discordRoleService.canBotManageRole(guild, rank.roleId)) {
+				unmanageable.push(rank.rankName);
+				details.set(rank.rankName, `Role '${role.name}' is above bot's highest role in hierarchy`);
+			} else {
+				valid.push(rank.rankName);
 			}
 		}
 
-		return { valid, invalid };
+		return { valid, invalid, unmanageable, details };
 	},
 };

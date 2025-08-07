@@ -82,7 +82,7 @@ export const inviteTrackingService = {
 			WHERE guild_id = ? AND invite_code = ? AND active = TRUE
 		`);
 		const result = stmt.get(guildId, inviteCode) as any;
-		if (!result) return null;
+		if (!result) {return null;}
 		return {
 			...result,
 			max_uses: Number(result.max_uses),

@@ -23,6 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm format:check` - Check formatting without changes
 - `pnpm format:staged` - Format only staged files
 
+### Environment Variables
+- `LOG_LEVEL` - Set logging level (DEBUG, INFO, WARN, ERROR). Default: INFO
+
 ## Architecture Overview
 
 This is a Discord reputation bot built with **Clean Architecture principles**:
@@ -70,11 +73,13 @@ Event-sourced design with SQLite:
 ### Key Features
 - **Reputation System**: Award points via 🏆 emoji reactions
 - **Rate Limiting**: Prevents abuse (5 awards/day, 1 per recipient per day)
-- **Role Management**: Automatic role assignment based on reputation levels
+- **Role Management**: Automatic role assignment based on reputation levels with hierarchy validation
 - **Daily Bonus**: Daily reputation bonus system
 - **Introduction System**: Bonus points for forum introductions and replies
 - **Leaderboards**: Guild-specific reputation rankings
 - **Invite Tracking**: Track and reward user invitations
+- **Enhanced Logging**: Structured logging with configurable levels (DEBUG, INFO, WARN, ERROR)
+- **Role Validation**: `/manage-ranks validate` command to check bot permissions and role configuration
 
 ## Testing Strategy
 

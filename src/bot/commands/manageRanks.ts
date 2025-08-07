@@ -1,5 +1,6 @@
 import { discordRoleService } from "@/bot/services/discordRoleService";
 import { roleManagementService } from "@/core/services/roleManagementService";
+import { logger } from "@/core/services/loggingService";
 import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from "discord.js";
 
 export async function handleManageRanksCommand(interaction: ChatInputCommandInteraction) {
@@ -33,9 +34,15 @@ export async function handleManageRanksCommand(interaction: ChatInputCommandInte
 			await handleListRanks(interaction, guildId);
 		} else if (subcommand === "sync") {
 			await handleSyncRanks(interaction);
+		} else if (subcommand === "validate") {
+			await handleValidateRanks(interaction);
 		}
 	} catch (error) {
-		console.error("Error in manage-ranks command:", error);
+		logger.error("Error in manage-ranks command", { 
+			guildId, 
+			command: `manage-ranks ${subcommand}`,
+			error 
+		});
 		await interaction.reply({
 			content: "Es ist ein Fehler beim Verwalten der Ränge aufgetreten.",
 			flags: MessageFlags.Ephemeral,
@@ -132,23 +139,37 @@ async function handleListRanks(interaction: ChatInputCommandInteraction, guildId
 		return;
 	}
 
-	// Validate that all roles still exist
+	// Validate that all roles still exist and can be managed
 	const validation = discordRoleService.validateRankRoles(interaction.guild!);
 
 	let message = `✅ **Reputation Ränge** (${ranks.length})\n\n`;
 
 	for (const rank of ranks) {
-		const roleExists = validation.valid.includes(rank.rankName);
-		const roleIndicator = roleExists ? "✅" : "❌";
-		const roleMention = roleExists ? `<@&${rank.roleId}>` : `~~Rolle gelöscht~~`;
+		let roleIndicator = "✅";
+		let roleMention = `<@&${rank.roleId}>`;
+		let statusNote = "";
 
-		message += `${roleIndicator} **${rank.rankName}**\n`;
+		if (validation.invalid.includes(rank.rankName)) {
+			roleIndicator = "❌";
+			roleMention = `~~Rolle gelöscht~~`;
+			statusNote = " *(Rolle nicht gefunden)*";
+		} else if (validation.unmanageable.includes(rank.rankName)) {
+			roleIndicator = "⚠️";
+			statusNote = " *(Bot kann Rolle nicht verwalten - Hierarchie prüfen)*";
+		}
+
+		message += `${roleIndicator} **${rank.rankName}**${statusNote}\n`;
 		message += `   • **RP benötigt:** ${rank.requiredRp}\n`;
 		message += `   • **Rolle:** ${roleMention}\n\n`;
 	}
 
 	if (validation.invalid.length > 0) {
-		message += `⚠️ **Warnung:** ${validation.invalid.length} Rolle(n) wurden gelöscht und sollten entfernt oder neu konfiguriert werden.`;
+		message += `\n❌ **${validation.invalid.length} Rolle(n) nicht gefunden** - Diese sollten entfernt oder neu konfiguriert werden.\n`;
+	}
+
+	if (validation.unmanageable.length > 0) {
+		message += `\n⚠️ **${validation.unmanageable.length} Rolle(n) nicht verwaltbar** - Bot-Rolle muss höher in der Hierarchie sein.\n`;
+		message += `Verwende \`/manage-ranks validate\` für Details.`;
 	}
 
 	await interaction.reply({
@@ -168,16 +189,117 @@ async function handleSyncRanks(interaction: ChatInputCommandInteraction) {
 		message += `• **Fehlgeschlagen:** ${result.failed} Users\n\n`;
 
 		if (result.failed > 0) {
-			message += `⚠️ Einige Updates sind fehlgeschlagen. Prüfe die Bot-Berechtigungen und ob alle Rang-Rollen existieren.`;
+			// Analyze error types
+			const errorTypes = new Map<string, number>();
+			for (const [key] of result.errors) {
+				const errorType = key.split('_')[0];
+				errorTypes.set(errorType, (errorTypes.get(errorType) || 0) + 1);
+			}
+
+			message += `⚠️ **Fehleranalyse:**\n`;
+			if (errorTypes.has('permission')) {
+				message += `• Bot fehlt ManageRoles Berechtigung\n`;
+			}
+			if (errorTypes.has('hierarchy')) {
+				message += `• ${errorTypes.get('hierarchy')} Rolle(n) sind über der Bot-Rolle in der Hierarchie\n`;
+			}
+			if (errorTypes.has('not_found')) {
+				message += `• ${errorTypes.get('not_found')} User nicht im Server gefunden\n`;
+			}
+			if (errorTypes.has('unknown')) {
+				message += `• ${errorTypes.get('unknown')} unbekannte Fehler\n`;
+			}
+
+			message += `\n**Lösungsvorschläge:**\n`;
+			message += `1. Stelle sicher, dass der Bot die 'Rollen verwalten' Berechtigung hat\n`;
+			message += `2. Verschiebe die Bot-Rolle über alle Reputation-Rollen\n`;
+			message += `3. Verwende \`/manage-ranks validate\` um Probleme zu identifizieren`;
 		} else {
 			message += `Alle User-Ränge sind jetzt synchronisiert!`;
 		}
 
 		await interaction.editReply({ content: message });
 	} catch (error) {
-		console.error("Error syncing ranks:", error);
+		logger.error("Error syncing ranks", { 
+			guildId: interaction.guild?.id,
+			error 
+		});
 		await interaction.editReply({
 			content: "❌ Fehler beim Synchronisieren der Ränge. Prüfe die Bot-Berechtigungen.",
 		});
 	}
+}
+
+async function handleValidateRanks(interaction: ChatInputCommandInteraction) {
+	if (!interaction.guild) {
+		await interaction.reply({
+			content: "Dieser Command kann nur in einem Server verwendet werden.",
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
+
+	const botMember = interaction.guild.members.me;
+	if (!botMember) {
+		await interaction.reply({
+			content: "❌ Bot-Member nicht gefunden.",
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
+
+	let message = `📋 **Rang-System Validierung**\n\n`;
+
+	// Check bot permissions
+	message += `**Bot-Berechtigungen:**\n`;
+	const hasManageRoles = botMember.permissions.has(PermissionFlagsBits.ManageRoles);
+	message += `• Rollen verwalten: ${hasManageRoles ? '✅' : '❌ FEHLT'}\n\n`;
+
+	if (!hasManageRoles) {
+		message += `⚠️ **Der Bot benötigt die 'Rollen verwalten' Berechtigung!**\n\n`;
+	}
+
+	// Show bot's highest role
+	message += `**Bot-Rolle Hierarchie:**\n`;
+	message += `• Höchste Bot-Rolle: ${botMember.roles.highest.name} (Position: ${botMember.roles.highest.position})\n\n`;
+
+	// Validate configured ranks
+	const validation = discordRoleService.validateRankRoles(interaction.guild);
+	const ranks = roleManagementService.getRanksForGuild(interaction.guild.id);
+
+	if (ranks.length === 0) {
+		message += `❌ **Keine Ränge konfiguriert**\n`;
+		message += `Verwende \`/manage-ranks add\` um Ränge hinzuzufügen.`;
+	} else {
+		message += `**Rang-Status:**\n`;
+		message += `• ✅ Verwaltbar: ${validation.valid.length}\n`;
+		message += `• ⚠️ Nicht verwaltbar: ${validation.unmanageable.length}\n`;
+		message += `• ❌ Nicht gefunden: ${validation.invalid.length}\n\n`;
+
+		if (validation.unmanageable.length > 0) {
+			message += `**Nicht verwaltbare Ränge:**\n`;
+			for (const rankName of validation.unmanageable) {
+				const detail = validation.details.get(rankName);
+				message += `• ${rankName}: ${detail}\n`;
+			}
+			message += `\n**Lösung:** Verschiebe die Bot-Rolle über diese Rollen in den Server-Einstellungen.\n\n`;
+		}
+
+		if (validation.invalid.length > 0) {
+			message += `**Nicht gefundene Ränge:**\n`;
+			for (const rankName of validation.invalid) {
+				message += `• ${rankName}\n`;
+			}
+			message += `\n**Lösung:** Entferne diese Ränge mit \`/manage-ranks remove\` oder erstelle die Rollen neu.\n`;
+		}
+
+		if (validation.valid.length === ranks.length && hasManageRoles) {
+			message += `\n✅ **Alle Ränge sind korrekt konfiguriert und verwaltbar!**`;
+		}
+	}
+
+	await interaction.reply({
+		content: message,
+		flags: MessageFlags.Ephemeral,
+	});
 }

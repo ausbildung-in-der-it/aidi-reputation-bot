@@ -43,12 +43,12 @@ const createMockGuild = (guildId: string, customRoles: [string, any][] = []) => 
 
 	// Default roles plus any custom roles
 	const defaultRoles: [string, any][] = [
-		["role_neuling", { id: "role_neuling", name: "Neuling" }],
-		["role_guide", { id: "role_guide", name: "Guide" }],
-		["role_expert", { id: "role_expert", name: "Expert" }],
-		["role_master", { id: "role_master", name: "Master" }],
-		["role_novice", { id: "role_novice", name: "Novice" }],
-		["role_starter", { id: "role_starter", name: "Starter" }],
+		["role_neuling", { id: "role_neuling", name: "Neuling", position: 10 }],
+		["role_guide", { id: "role_guide", name: "Guide", position: 20 }],
+		["role_expert", { id: "role_expert", name: "Expert", position: 30 }],
+		["role_master", { id: "role_master", name: "Master", position: 40 }],
+		["role_novice", { id: "role_novice", name: "Novice", position: 15 }],
+		["role_starter", { id: "role_starter", name: "Starter", position: 5 }],
 	];
 
 	const allRoles = [...defaultRoles, ...customRoles];
@@ -73,6 +73,19 @@ const createMockGuild = (guildId: string, customRoles: [string, any][] = []) => 
 				}
 				return Promise.resolve(memberCache.get(userId));
 			}),
+			me: {
+				id: "bot",
+				permissions: {
+					has: vi.fn().mockReturnValue(true), // Bot has all permissions in tests
+				},
+				roles: {
+					highest: {
+						id: "bot_highest_role",
+						name: "Bot Role",
+						position: 100, // High position so bot can manage other roles
+					},
+				},
+			},
 		},
 	};
 
@@ -347,7 +360,8 @@ describe("Reputation Rank System", () => {
 			roleManagementService.addRank(guildId, "Master", 200, "role_master");
 
 			const mockGuild = createMockGuild(guildId) as any;
-			mockGuild.roles.cache.set("role_master", { id: "role_master", name: "Master" });
+			// Add Master role with position lower than bot's highest role (100)
+			mockGuild.roles.cache.set("role_master", { id: "role_master", name: "Master", position: 40 });
 
 			const userId = "user_progression";
 

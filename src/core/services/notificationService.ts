@@ -1,7 +1,7 @@
 import { db } from "@/db/sqlite";
 
 export interface NotificationEvent {
-	type: "reputation_awarded" | "daily_bonus" | "introduction_bonus" | "trophy_given" | "invite_join";
+	type: "reputation_awarded" | "daily_bonus" | "introduction_bonus" | "trophy_given" | "invite_join" | "rank_promotion" | "role_error";
 	guildId: string;
 	userId: string;
 	userName: string;
@@ -13,6 +13,12 @@ export interface NotificationEvent {
 		sourceType?: "reaction" | "post" | "reply" | "daily";
 		inviteCode?: string;
 		inviteCreatorName?: string;
+		newRank?: string;
+		previousRank?: string;
+		errorType?: string;
+		error?: string;
+		affectedUser?: string;
+		hint?: string;
 	};
 }
 
@@ -95,6 +101,20 @@ export const notificationService = {
 					return `💬 **${event.userName}** hat ${event.points} RP für eine Begrüßung gesammelt`;
 				}
 				return `👋 **${event.userName}** hat ${event.points} RP durch eine Vorstellung gesammelt`;
+
+			case "rank_promotion":
+				const prevRank = event.context?.previousRank || "Kein Rang";
+				const newRank = event.context?.newRank || "Unbekannt";
+				return `🎆 **${event.userName}** wurde befördert: ${prevRank} → **${newRank}** (${event.points} RP)`;
+
+			case "role_error":
+				if (event.context?.errorType === "permission") {
+					return `⚠️ **Rollenfehler:** Bot fehlt 'Rollen verwalten' Berechtigung\n${event.context.hint || ""}`;
+				}
+				if (event.context?.errorType === "hierarchy") {
+					return `⚠️ **Rollenfehler:** Bot kann Rolle nicht verwalten (Hierarchie)\nBetroffener User: ${event.context.affectedUser || "Unbekannt"}\n${event.context.hint || ""}`;
+				}
+				return `⚠️ **Rollenfehler:** ${event.context?.error || "Unbekannter Fehler"}\n${event.context?.hint || ""}`;
 
 			case "reputation_awarded":
 			default:

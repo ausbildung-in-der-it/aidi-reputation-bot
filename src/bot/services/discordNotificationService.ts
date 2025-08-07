@@ -1,5 +1,6 @@
-import { Client, TextChannel, ChannelType } from "discord.js";
-import { notificationService, NotificationEvent } from "@/core/services/notificationService";
+import { NotificationEvent, notificationService } from "@/core/services/notificationService";
+import { ChannelType, Client, TextChannel } from "discord.js";
+import { logger } from "@/core/services/loggingService";
 
 export class DiscordNotificationService {
 	constructor(private client: Client) {}
@@ -17,14 +18,18 @@ export class DiscordNotificationService {
 			const channel = await this.client.channels.fetch(notificationData.channelId);
 
 			if (!channel) {
-				console.warn(`Notification channel not found: ${notificationData.channelId} in guild ${event.guildId}`);
+				logger.warn(`Notification channel not found`, {
+					guildId: event.guildId,
+					details: { channelId: notificationData.channelId }
+				});
 				return;
 			}
 
 			if (channel.type !== ChannelType.GuildText) {
-				console.warn(
-					`Notification channel is not a text channel: ${notificationData.channelId} in guild ${event.guildId}`
-				);
+				logger.warn(`Notification channel is not a text channel`, {
+					guildId: event.guildId,
+					details: { channelId: notificationData.channelId, channelType: channel.type }
+				});
 				return;
 			}
 
@@ -33,17 +38,33 @@ export class DiscordNotificationService {
 			// Check bot permissions
 			const permissions = textChannel.permissionsFor(this.client.user!);
 			if (!permissions?.has("SendMessages") || !permissions?.has("ViewChannel")) {
-				console.warn(
-					`Bot lacks permissions to send notifications in channel ${notificationData.channelId} in guild ${event.guildId}`
-				);
+				logger.warn(`Bot lacks permissions to send notifications`, {
+					guildId: event.guildId,
+					details: {
+						channelId: notificationData.channelId,
+						hasSendMessages: permissions?.has("SendMessages"),
+						hasViewChannel: permissions?.has("ViewChannel")
+					}
+				});
 				return;
 			}
 
 			// Send the notification
 			await textChannel.send(notificationData.message);
+			logger.debug("Notification sent", {
+				guildId: event.guildId,
+				details: { 
+					type: event.type,
+					channelId: notificationData.channelId 
+				}
+			});
 		} catch (error) {
 			// Log error but don't throw - notifications are optional
-			console.error("Error sending notification:", error, { event });
+			logger.error("Error sending notification", {
+				guildId: event.guildId,
+				error,
+				details: { event }
+			});
 		}
 	}
 }

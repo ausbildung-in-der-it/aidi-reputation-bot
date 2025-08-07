@@ -62,6 +62,9 @@ const commands = [
 		.addSubcommand(subcommand => subcommand.setName("list").setDescription("Zeigt alle konfigurierten Ränge an"))
 		.addSubcommand(subcommand =>
 			subcommand.setName("sync").setDescription("Synchronisiert alle User-Ränge (kann dauern)")
+		)
+		.addSubcommand(subcommand =>
+			subcommand.setName("validate").setDescription("Überprüft Bot-Berechtigungen und Rang-Konfiguration")
 		),
 	new SlashCommandBuilder()
 		.setName("rate-limits")

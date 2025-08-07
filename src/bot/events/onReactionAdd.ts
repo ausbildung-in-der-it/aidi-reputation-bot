@@ -3,6 +3,7 @@ import { addReputationForReaction } from "@/core/usecases/addReputationForReacti
 import { UserInfo } from "@/core/types/UserInfo";
 import { getDiscordNotificationService } from "@/bot/services/discordNotificationService";
 import { discordRoleService } from "@/bot/services/discordRoleService";
+import { logger } from "@/core/services/loggingService";
 
 async function createUserInfo(userId: string, guild: any): Promise<UserInfo | null> {
 	try {
@@ -89,15 +90,76 @@ export async function onReactionAdd(reaction: MessageReaction | PartialMessageRe
 				const roleUpdate = await discordRoleService.updateUserRank(message.guild, recipient.id, currentRp);
 
 				if (roleUpdate.success && roleUpdate.updated) {
-					console.log(
-						`Rank updated for ${recipient.username} (${currentRp} RP): ${roleUpdate.previousRole || 'None'} → ${roleUpdate.newRole || 'None'}`
+					logger.info(
+						`Rank updated after reputation award`,
+						{
+							guildId: message.guild.id,
+							userId: recipient.id,
+							details: {
+								username: recipient.username,
+								rp: currentRp,
+								previousRole: roleUpdate.previousRole || 'None',
+								newRole: roleUpdate.newRole || 'None'
+							}
+						}
 					);
+
+					// Notify about rank promotion if notification service is available
+					if (roleUpdate.newRole && roleUpdate.previousRole !== roleUpdate.newRole && notificationService) {
+						await notificationService.sendNotification({
+							type: "rank_promotion",
+							guildId,
+							userId: recipient.id,
+							userName: recipient.displayName || recipient.username || `User-${recipient.id}`,
+							points: currentRp,
+							context: {
+								newRank: roleUpdate.newRole,
+								previousRank: roleUpdate.previousRole,
+							},
+						});
+					}
+				} else if (!roleUpdate.success) {
+					logger.error(
+						"Failed to update user rank after reputation award",
+						{
+							guildId: message.guild.id,
+							userId: recipient.id,
+							details: {
+								error: roleUpdate.error,
+								errorType: roleUpdate.errorType,
+								rp: currentRp
+							}
+						}
+					);
+
+					// Send error notification to admins if it's a permission/hierarchy issue
+					if ((roleUpdate.errorType === "permission" || roleUpdate.errorType === "hierarchy") && notificationService) {
+						await notificationService.sendNotification({
+							type: "role_error",
+							guildId,
+							userId: "admin",
+							userName: "System",
+							points: 0,
+							context: {
+								errorType: roleUpdate.errorType,
+								error: roleUpdate.error,
+								affectedUser: recipient.displayName || recipient.username,
+								hint: "Verwende /manage-ranks validate um Probleme zu identifizieren"
+							},
+						});
+					}
 				}
 			} catch (error) {
-				console.error("Error updating user rank after reputation award:", error);
+				logger.error("Error updating user rank after reputation award", { 
+					guildId: message.guild?.id,
+					userId: recipient.id,
+					error 
+				});
 			}
 		}
 	} catch (err) {
-		console.error("Fehler in onReactionAdd:", err);
+		logger.error("Fehler in onReactionAdd", { 
+			error: err 
+		});
 	}
 }

@@ -4,16 +4,16 @@ if (process.env.NODE_ENV !== "production") {
 } else {
 	require("module-alias/register");
 }
-import "dotenv/config";
-import { Client, GatewayIntentBits, Partials } from "discord.js";
-import { onReactionAdd } from "@/bot/events/onReactionAdd";
-import { onReactionRemove } from "@/bot/events/onReactionRemove";
+import { registerSlashCommands } from "@/bot/commands/registerCommands";
+import { onGuildMemberAdd } from "@/bot/events/onGuildMemberAdd";
 import { onInteractionCreate } from "@/bot/events/onInteractionCreate";
 import { onMessageCreate } from "@/bot/events/onMessageCreate";
-import { onGuildMemberAdd } from "@/bot/events/onGuildMemberAdd";
-import { registerSlashCommands } from "@/bot/commands/registerCommands";
-import { closeDatabase } from "@/db/sqlite";
+import { onReactionAdd } from "@/bot/events/onReactionAdd";
+import { onReactionRemove } from "@/bot/events/onReactionRemove";
 import { initializeDiscordNotificationService } from "@/bot/services/discordNotificationService";
+import { closeDatabase } from "@/db/sqlite";
+import { Client, GatewayIntentBits, Partials } from "discord.js";
+import "dotenv/config";
 
 import "@/db/sqlite";
 
@@ -50,13 +50,13 @@ client.once("ready", async () => {
 			try {
 				const { rateLimitService } = require("@/core/services/rateLimitService");
 				const { introductionReplyService } = require("@/core/services/introductionReplyService");
-				
+
 				// Clean rate limits
 				const cleanedRateLimits = rateLimitService.cleanupOldEntries();
 				if (cleanedRateLimits > 0) {
 					console.log(`Cleaned up ${cleanedRateLimits} old rate limit entries`);
 				}
-				
+
 				// Clean introduction reply tracking (keep 7 days for audit)
 				const cleanedReplies = introductionReplyService.cleanupOldEntries(7);
 				if (cleanedReplies > 0) {
