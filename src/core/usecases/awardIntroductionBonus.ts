@@ -115,9 +115,10 @@ function handlePostBonus(input: IntroductionBonusInput): IntroductionBonusResult
 	}
 
 	// Award bonus for original post
+	// Use unique message ID to avoid conflict with daily bonus
 	reputationService.trackReputationReaction({
 		guildId: input.guildId,
-		messageId: input.messageId,
+		messageId: `${input.messageId}_intro_post`,
 		toUserId: input.user.id,
 		fromUserId: "system",
 		emoji,
@@ -176,9 +177,10 @@ function handleReplyBonus(input: IntroductionBonusInput): IntroductionBonusResul
 	const points = INTRODUCTION_CONFIG.replyBonus;
 
 	// Award reply bonus
+	// Use unique message ID to avoid conflict with daily bonus
 	reputationService.trackReputationReaction({
 		guildId: input.guildId,
-		messageId: input.messageId,
+		messageId: `${input.messageId}_intro_reply`,
 		toUserId: input.user.id,
 		fromUserId: "system",
 		emoji: "introduction_reply",
